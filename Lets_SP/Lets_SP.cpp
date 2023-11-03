@@ -22,17 +22,28 @@ GLvoid Keyboard(unsigned char key, int x, int y);
 void Motion(int, int);
 void Fly(int);
 
-
-
 void convertCoordinate(int x, int y, double& convertedX, double& convertedY) {
 	convertedX = (2.0 * x / MAXX) - 1.0;
 	convertedY = 1.0 - (2.0 * y / MAXY);
 }
 
+
+
+std::random_device rd;
+std::mt19937 gen(rd());
+std::uniform_real_distribution<> creatcoord(1.0, 1.5);
+// GLfloat tri_size = creatcoord(gen);
+std::uniform_real_distribution<> color(0, 1);
+
+
 GLchar* vertexSource, * fragmentSource; //--- 소스코드 저장 변수
 GLuint vertexShader, fragmentShader; //--- 세이더 객체
 GLuint shaderProgramID;
 GLuint vao, vbo[2];
+
+GLuint vbo_line[2];
+GLfloat line[2][6];
+GLfloat line_RGB[2][6];
 
 GLfloat point[10][12];
 GLfloat RGB[10][12];
@@ -68,10 +79,25 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설�
 	glewExperimental = GL_TRUE;
 	glewInit();
 
-	
+
+	{
+		line[0][1] = 1;
+		line[0][4] = -1;
+		line[1][0] = 1;
+		line[1][3] = -1;
+		line_RGB[0][2] = 1;
+		line_RGB[0][5] = 1;
+		line_RGB[1][0] = 1;
+		line_RGB[1][3] = 1;
+	}
 	glGenVertexArrays(1, &vao);	// 1. vao 지정/할당
 	glBindVertexArray(vao);	// 2. VAO 바인딩
 	glGenBuffers(2, vbo);	// 3. 2개의 vbo 지정, 할당
+	glGenBuffers(2, vbo_line);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_line[0]);
+	glBufferData(GL_ARRAY_BUFFER, 2 * 6 * sizeof(GLfloat), line, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_line[1]);
+	glBufferData(GL_ARRAY_BUFFER, 2 * 6 * sizeof(GLfloat), line_RGB, GL_STATIC_DRAW);
 
 	glUseProgram(shaderProgramID);
 
@@ -90,17 +116,28 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설�
 GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 {
 	GLfloat rColor, gColor, bColor;
-	rColor = gColor = bColor = 0.3;
+	rColor = gColor = bColor = 1.0;
 	glClearColor(rColor, gColor, bColor, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+	glClear(GL_COLOR_BUFFER_BIT);
 	glUseProgram(shaderProgramID);
 
+	glBindVertexArray(vao);
 	int PosLocation = glGetAttribLocation(shaderProgramID, "in_Position"); //	: 0  Shader의 'layout (location = 0)' 부분
 	int ColorLocation = glGetAttribLocation(shaderProgramID, "in_Color"); //	: 1
 
 	glEnableVertexAttribArray(PosLocation); // Enable 필수! 사용하겠단 의미
 	glEnableVertexAttribArray(ColorLocation);
+
+	for (int i = 0; i < 2; ++i) {
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_line[0]);
+		glVertexAttribPointer(PosLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(i * 6 * sizeof(GLfloat)));
+		glEnableVertexAttribArray(PosLocation);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_line[1]);
+		glVertexAttribPointer(ColorLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(i * 6 * sizeof(GLfloat)));
+		glEnableVertexAttribArray(ColorLocation);
+		glDrawArrays(GL_LINES, 0, 2);
+	}
+
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);	// 4. 첫 번째 vbo를 활성화하여 바인드하고, 버텍스 속성을 저장
 	glBufferData(GL_ARRAY_BUFFER, sizeof(triShape), triShape, GL_STATIC_DRAW);
@@ -114,6 +151,9 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 
 	glBindVertexArray(vao);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
+
+
+
 
 	glDisableVertexAttribArray(PosLocation); // Disable 필수!
 	glDisableVertexAttribArray(ColorLocation);
@@ -219,11 +259,17 @@ void Motion(int x, int y)
 
 GLvoid Keyboard(unsigned char key, int x, int y)
 {
+	switch (key) {
+	case 'q':
+	case 'Q':
+		exit(0);
+		break;
+	}
 	glutPostRedisplay();
 }
 
-void Fly(int x)
+void Fly(int value)
 {
 	glutPostRedisplay();
-	glutTimerFunc(100, Fly, 1);
+	glutTimerFunc(100, Fly, value);
 }
