@@ -8,7 +8,7 @@
 #include <random>
 
 #define MAXX 1000
-#define MAXY 600
+#define MAXY 1000
 
 void make_vertexShaders();
 void make_fragmentShaders();
@@ -32,6 +32,7 @@ void convertCoordinate(int x, int y, double& convertedX, double& convertedY) {
 std::random_device rd;
 std::mt19937 gen(rd());
 std::uniform_real_distribution<> createcoord(0.0, 0.5);
+std::uniform_real_distribution<> createcoord_2(0.1, 0.3);
 // GLfloat tri_size = createcoord(gen);
 std::uniform_real_distribution<> color(0, 1);
 std::uniform_real_distribution<> dist(0, 1);	
@@ -82,12 +83,9 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설�
 		line_RGB[1][0] = 1;
 		line_RGB[1][3] = 1;
 	}
-	//{
-	//	figure[0];
-	//}
-	glGenVertexArrays(1, &vao);	// 1. vao 지정/할당
-	glBindVertexArray(vao);	// 2. VAO 바인딩
-	glGenBuffers(2, vbo);	// 3. 2개의 vbo 지정, 할당
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+	glGenBuffers(2, vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 	glBufferData(GL_ARRAY_BUFFER, 4 * 9 * sizeof(GLfloat), figure, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
@@ -127,6 +125,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glEnableVertexAttribArray(PosLocation); // Enable 필수! 사용하겠단 의미
 	glEnableVertexAttribArray(ColorLocation);
 
+	// Draw XY_Line
 	for (int i = 0; i < 2; ++i) {
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_line[0]);
 		glVertexAttribPointer(PosLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(i * 6 * sizeof(GLfloat)));
@@ -137,6 +136,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 		glDrawArrays(GL_LINES, 0, 2);
 	}
 
+	// Draw Flying_Figure
 	for (int i = 0; i < shape_count; ++i) {
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 		glVertexAttribPointer(PosLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(i * 12 * sizeof(GLfloat)));
@@ -144,11 +144,11 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
 		glVertexAttribPointer(ColorLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(i * 12 * sizeof(GLfloat)));
 		glEnableVertexAttribArray(ColorLocation);
-		if (shape_mode == 3) {
+		if (shape_type[i] == 1)
+			glDrawArrays(GL_TRIANGLES, 0, 3);
+		else if (shape_type[i] == 1)
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		}
 	}
-
 
 
 	glDisableVertexAttribArray(PosLocation); // Disable 필수!
@@ -236,10 +236,6 @@ char* filetobuf(const char* file)
 
 void Mouse(int button, int state, int x, int y)
 {
-	std::random_device rd;
-	std::mt19937 gen(rd());
-	std::uniform_real_distribution<> dist(0, 1);
-
 	GLdouble convertedX, convertedY;
 	convertCoordinate(x, y, convertedX, convertedY);
 
@@ -250,57 +246,109 @@ void Motion(int x, int y)
 {
 	GLdouble convertedX, convertedY;
 	convertCoordinate(x, y, convertedX, convertedY);
-
 }
 
 GLvoid Keyboard(unsigned char key, int x, int y)
 {
-	switch (key) {
-	case '1':
-	{
-		shape_mode = 3;
+	if (shape_count < 10) {
+		switch (key) {
+		case '1':
+		{
+			shape_mode = 1;
+			shape_type[shape_count] = shape_mode;
+			double random_point_3 = createcoord(gen);
+			double random_point_4 = createcoord_2(gen);
+			point[shape_count][0] = random_point_3 - random_point_4;
+			point[shape_count][1] = random_point_3 - random_point_4;
+			point[shape_count][2] = 0.0f;
+			point[shape_count][3] = random_point_3 + random_point_4;
+			point[shape_count][4] = random_point_3 - random_point_4;
+			point[shape_count][5] = 0.0f;
+			point[shape_count][6] = random_point_3;
+			point[shape_count][7] = random_point_3 + random_point_4;
+			point[shape_count][8] = 0.0f;
+			for (int i = 0; i < 3; ++i) {
+				RGB[shape_count][i] = dist(gen);
+			}
+			for (int i = 0; i < 3; ++i) {
+				RGB[shape_count][i + 6] = RGB[shape_count][i + 3] = RGB[shape_count][i];
+			}
 
-		double random_point = createcoord(gen);
-		point[shape_count][0] = random_point - 0.1f;
-		point[shape_count][1] = random_point - 0.1f;
-		point[shape_count][2] = 0.0f;
-		point[shape_count][3] = random_point - 0.1f;
-		point[shape_count][4] = random_point + 0.1f;
-		point[shape_count][5] = 0.0f;
-		point[shape_count][6] = random_point + 0.1f;
-		point[shape_count][7] = random_point - 0.1f;
-		point[shape_count][8] = 0.0f;
-		point[shape_count][9] = random_point + 0.1;
-		point[shape_count][10] = random_point + 0.1f;
-		point[shape_count][11] = 0.0f;
-		for (int i = 0; i < 3; ++i) {
-			RGB[shape_count][i] = dist(gen);
-		}
-		for (int i = 0; i < 3; ++i) {
-			RGB[shape_count][i + 9] = RGB[shape_count][i + 6] = RGB[shape_count][i + 3] = RGB[shape_count][i];
-		}
-		++shape_count;
-		break;
-	}
-	case '2':
-		figure_type = 2;
-		break;
+			++shape_count;
+			for (int i = 0; i < 10; ++i)
+				glutTimerFunc(100, Fly, i);
+			break;
+			
 
-	case 'q':
-	case 'Q':
-		exit(0);
-		break;
+		}
+		case '2':
+		{
+			shape_mode = 2;
+
+			shape_type[shape_count] = shape_mode;
+			
+			double random_point = createcoord(gen);
+			double random_point_2 = createcoord_2(gen);
+			point[shape_count][0] = random_point - createcoord_2(gen);
+			point[shape_count][1] = random_point - createcoord_2(gen);
+			point[shape_count][2] = 0.0f;
+			point[shape_count][3] = random_point - createcoord_2(gen);
+			point[shape_count][4] = random_point + createcoord_2(gen);
+			point[shape_count][5] = 0.0f;
+			point[shape_count][6] = random_point + createcoord_2(gen);
+			point[shape_count][7] = random_point - createcoord_2(gen);
+			point[shape_count][8] = 0.0f;
+			point[shape_count][9] = random_point + createcoord_2(gen);
+			point[shape_count][10] = random_point + createcoord_2(gen);
+			point[shape_count][11] = 0.0f;
+			for (int i = 0; i < 3; ++i) {
+				RGB[shape_count][i] = color(gen);
+			}
+			for (int i = 0; i < 3; ++i) {
+				RGB[shape_count][i + 9] = RGB[shape_count][i + 6] = RGB[shape_count][i + 3] = RGB[shape_count][i];
+			}
+			++shape_count;
+			break;
+		}
+		case 'q':
+		case 'Q':
+			exit(0);
+			break;
+		}
+		glBindVertexArray(vao);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), point, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), RGB, GL_STATIC_DRAW);
 	}
-	glBindVertexArray(vao);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), point, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), RGB, GL_STATIC_DRAW);
 	glutPostRedisplay();
 }
+
 
 void Fly(int value)
 {
-	glutTimerFunc(100, Fly, value);
+	GLfloat gravity = 1.1f;
+	GLfloat left_gravity = 0.01f;
+
+	std::cout << "fly" << '\n';
+	gravity += 0.005;
+	// 중력 가속도를 적용
+	point[value][1] -= 0.005f * gravity;
+	point[value][4] -= 0.005f * gravity;
+	point[value][7] -= 0.005f * gravity;
+	point[value][10] -= 0.005f* gravity;
+
+	point[value][0] -= left_gravity;
+	point[value][3] -= left_gravity;
+	point[value][6] -= left_gravity;
+	point[value][9] -= left_gravity;
+	// 화면 다시 그리기 요청
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), point, GL_DYNAMIC_DRAW);
 	glutPostRedisplay();
+
+	// 일정 간격으로 Fly 함수를 반복 호출
+	glutTimerFunc(10, Fly, value);
 }
+
