@@ -31,9 +31,10 @@ void convertCoordinate(int x, int y, double& convertedX, double& convertedY) {
 
 std::random_device rd;
 std::mt19937 gen(rd());
-std::uniform_real_distribution<> creatcoord(1.0, 1.5);
-// GLfloat tri_size = creatcoord(gen);
+std::uniform_real_distribution<> createcoord(0.0, 0.5);
+// GLfloat tri_size = createcoord(gen);
 std::uniform_real_distribution<> color(0, 1);
+std::uniform_real_distribution<> dist(0, 1);	
 
 
 GLchar* vertexSource, * fragmentSource; //--- 소스코드 저장 변수
@@ -48,18 +49,9 @@ GLfloat line_RGB[2][6];
 GLfloat point[10][12];
 GLfloat RGB[10][12];
 
-float tri = 0.5f;
-GLfloat triShape[3][3] = {
-	{-tri, -tri, 0.0f},
-	{tri, -tri, 0.0f},
-	{0.0f, tri, 0.0f}
-};
+int figure_type{ 0 };
+GLfloat figure[10][12];
 
-GLfloat colors[3][3] = {
-	{1.0f, 0.0f, 0.0f},
-	{0.0f, 1.0f, 0.0f},
-	{0.0f, 0.0f, 1.0f}
-};
 
 
 int shape_mode;
@@ -90,9 +82,17 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설�
 		line_RGB[1][0] = 1;
 		line_RGB[1][3] = 1;
 	}
+	//{
+	//	figure[0];
+	//}
 	glGenVertexArrays(1, &vao);	// 1. vao 지정/할당
 	glBindVertexArray(vao);	// 2. VAO 바인딩
 	glGenBuffers(2, vbo);	// 3. 2개의 vbo 지정, 할당
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, 4 * 9 * sizeof(GLfloat), figure, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+	glBufferData(GL_ARRAY_BUFFER, 4 * 9 * sizeof(GLfloat), RGB, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_line[0]);
 	glGenBuffers(2, vbo_line);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_line[0]);
 	glBufferData(GL_ARRAY_BUFFER, 2 * 6 * sizeof(GLfloat), line, GL_STATIC_DRAW);
@@ -106,10 +106,9 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설�
 
 	glutDisplayFunc(drawScene); // 장면을 다시 그리는데 필요한 루틴들은 모두 이 함수 안에 넣어둔다.
 	glutReshapeFunc(Reshape);
-	/*glutKeyboardFunc(Keyboard);
+	glutKeyboardFunc(Keyboard);
 	glutMouseFunc(Mouse);
 	glutMotionFunc(Motion);
-	glutTimerFunc(100, Fly, 1);*/
 	glutMainLoop();
 }
 
@@ -138,20 +137,17 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 		glDrawArrays(GL_LINES, 0, 2);
 	}
 
-
-	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);	// 4. 첫 번째 vbo를 활성화하여 바인드하고, 버텍스 속성을 저장
-	glBufferData(GL_ARRAY_BUFFER, sizeof(triShape), triShape, GL_STATIC_DRAW);
-	glVertexAttribPointer(PosLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
-	glEnableVertexAttribArray(PosLocation);
-
-	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);	// 4-1. 두 번째 vbo를 활성화하여 바인드하고, 버텍스 속성을 저장
-	glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
-	glVertexAttribPointer(ColorLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(3*sizeof(GLfloat)));
-	glEnableVertexAttribArray(ColorLocation);
-
-	glBindVertexArray(vao);
-	glDrawArrays(GL_TRIANGLES, 0, 3);
-
+	for (int i = 0; i < shape_count; ++i) {
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+		glVertexAttribPointer(PosLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(i * 12 * sizeof(GLfloat)));
+		glEnableVertexAttribArray(PosLocation);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+		glVertexAttribPointer(ColorLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(i * 12 * sizeof(GLfloat)));
+		glEnableVertexAttribArray(ColorLocation);
+		if (shape_mode == 3) {
+			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		}
+	}
 
 
 
@@ -260,16 +256,51 @@ void Motion(int x, int y)
 GLvoid Keyboard(unsigned char key, int x, int y)
 {
 	switch (key) {
+	case '1':
+	{
+		shape_mode = 3;
+
+		double random_point = createcoord(gen);
+		point[shape_count][0] = random_point - 0.1f;
+		point[shape_count][1] = random_point - 0.1f;
+		point[shape_count][2] = 0.0f;
+		point[shape_count][3] = random_point - 0.1f;
+		point[shape_count][4] = random_point + 0.1f;
+		point[shape_count][5] = 0.0f;
+		point[shape_count][6] = random_point + 0.1f;
+		point[shape_count][7] = random_point - 0.1f;
+		point[shape_count][8] = 0.0f;
+		point[shape_count][9] = random_point + 0.1;
+		point[shape_count][10] = random_point + 0.1f;
+		point[shape_count][11] = 0.0f;
+		for (int i = 0; i < 3; ++i) {
+			RGB[shape_count][i] = dist(gen);
+		}
+		for (int i = 0; i < 3; ++i) {
+			RGB[shape_count][i + 9] = RGB[shape_count][i + 6] = RGB[shape_count][i + 3] = RGB[shape_count][i];
+		}
+		++shape_count;
+		break;
+	}
+	case '2':
+		figure_type = 2;
+		break;
+
 	case 'q':
 	case 'Q':
 		exit(0);
 		break;
 	}
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), point, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), RGB, GL_STATIC_DRAW);
 	glutPostRedisplay();
 }
 
 void Fly(int value)
 {
-	glutPostRedisplay();
 	glutTimerFunc(100, Fly, value);
+	glutPostRedisplay();
 }
