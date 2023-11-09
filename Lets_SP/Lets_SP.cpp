@@ -8,7 +8,7 @@
 #include <random>
 
 #define MAXX 1000
-#define MAXY 1000
+#define MAXY 700
 
 void make_vertexShaders();
 void make_fragmentShaders();
@@ -21,6 +21,8 @@ GLvoid Reshape(int w, int h);
 GLvoid Keyboard(unsigned char key, int x, int y);
 void Motion(int, int);
 void Fly(int);
+void Create(int);
+
 
 void convertCoordinate(int x, int y, double& convertedX, double& convertedY) {
 	convertedX = (2.0 * x / MAXX) - 1.0;
@@ -31,11 +33,11 @@ void convertCoordinate(int x, int y, double& convertedX, double& convertedY) {
 
 std::random_device rd;
 std::mt19937 gen(rd());
-std::uniform_real_distribution<> createcoord(0.0, 0.5);
-std::uniform_real_distribution<> createcoord_2(0.1, 0.3);
+std::uniform_real_distribution<> createcoord_x(1.0, 1.5);
+std::uniform_real_distribution<> createcoord_y(-0.5, 0.5);
+std::uniform_real_distribution<> createcoord_2(0.1, 0.2);
 // GLfloat tri_size = createcoord(gen);
 std::uniform_real_distribution<> color(0, 1);
-std::uniform_real_distribution<> dist(0, 1);	
 
 
 GLchar* vertexSource, * fragmentSource; //--- 소스코드 저장 변수
@@ -47,8 +49,8 @@ GLuint vbo_line[2];
 GLfloat line[2][6];
 GLfloat line_RGB[2][6];
 
-GLfloat point[10][12];
-GLfloat RGB[10][12];
+GLfloat point[100][12];
+GLfloat RGB[100][12];
 
 int figure_type{ 0 };
 GLfloat figure[10][12];
@@ -107,6 +109,7 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설�
 	glutKeyboardFunc(Keyboard);
 	glutMouseFunc(Mouse);
 	glutMotionFunc(Motion);
+	glutTimerFunc(1000, Create, 0);
 	glutMainLoop();
 }
 
@@ -146,7 +149,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 		glEnableVertexAttribArray(ColorLocation);
 		if (shape_type[i] == 1)
 			glDrawArrays(GL_TRIANGLES, 0, 3);
-		else if (shape_type[i] == 1)
+		else if (shape_type[i] == 2)
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
 
@@ -250,56 +253,56 @@ void Motion(int x, int y)
 
 GLvoid Keyboard(unsigned char key, int x, int y)
 {
-	if (shape_count < 10) {
 		switch (key) {
 		case '1':
 		{
 			shape_mode = 1;
+
 			shape_type[shape_count] = shape_mode;
-			double random_point_3 = createcoord(gen);
+
+			double random_point_x = createcoord_x(gen);
+			double random_point_y = createcoord_y(gen);
 			double random_point_4 = createcoord_2(gen);
-			point[shape_count][0] = random_point_3 - random_point_4;
-			point[shape_count][1] = random_point_3 - random_point_4;
+			point[shape_count][0] = random_point_x - random_point_4;
+			point[shape_count][1] = random_point_y - random_point_4;
 			point[shape_count][2] = 0.0f;
-			point[shape_count][3] = random_point_3 + random_point_4;
-			point[shape_count][4] = random_point_3 - random_point_4;
+			point[shape_count][3] = random_point_x + random_point_4;
+			point[shape_count][4] = random_point_y - random_point_4;
 			point[shape_count][5] = 0.0f;
-			point[shape_count][6] = random_point_3;
-			point[shape_count][7] = random_point_3 + random_point_4;
+			point[shape_count][6] = random_point_x;
+			point[shape_count][7] = random_point_y + random_point_4;
 			point[shape_count][8] = 0.0f;
 			for (int i = 0; i < 3; ++i) {
-				RGB[shape_count][i] = dist(gen);
+				RGB[shape_count][i] = color(gen);
 			}
 			for (int i = 0; i < 3; ++i) {
 				RGB[shape_count][i + 6] = RGB[shape_count][i + 3] = RGB[shape_count][i];
 			}
-
 			++shape_count;
 			for (int i = 0; i < 10; ++i)
 				glutTimerFunc(100, Fly, i);
 			break;
-			
-
 		}
 		case '2':
 		{
 			shape_mode = 2;
 
 			shape_type[shape_count] = shape_mode;
-			
-			double random_point = createcoord(gen);
+
+			double random_point_x = createcoord_x(gen);
+			double random_point_y = createcoord_y(gen);
 			double random_point_2 = createcoord_2(gen);
-			point[shape_count][0] = random_point - createcoord_2(gen);
-			point[shape_count][1] = random_point - createcoord_2(gen);
+			point[shape_count][0] = random_point_x - createcoord_2(gen);
+			point[shape_count][1] = random_point_y - createcoord_2(gen);
 			point[shape_count][2] = 0.0f;
-			point[shape_count][3] = random_point - createcoord_2(gen);
-			point[shape_count][4] = random_point + createcoord_2(gen);
+			point[shape_count][3] = random_point_x - createcoord_2(gen);
+			point[shape_count][4] = random_point_y + createcoord_2(gen);
 			point[shape_count][5] = 0.0f;
-			point[shape_count][6] = random_point + createcoord_2(gen);
-			point[shape_count][7] = random_point - createcoord_2(gen);
+			point[shape_count][6] = random_point_x + createcoord_2(gen);
+			point[shape_count][7] = random_point_y - createcoord_2(gen);
 			point[shape_count][8] = 0.0f;
-			point[shape_count][9] = random_point + createcoord_2(gen);
-			point[shape_count][10] = random_point + createcoord_2(gen);
+			point[shape_count][9] = random_point_x + createcoord_2(gen);
+			point[shape_count][10] = random_point_y + createcoord_2(gen);
 			point[shape_count][11] = 0.0f;
 			for (int i = 0; i < 3; ++i) {
 				RGB[shape_count][i] = color(gen);
@@ -308,6 +311,8 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 				RGB[shape_count][i + 9] = RGB[shape_count][i + 6] = RGB[shape_count][i + 3] = RGB[shape_count][i];
 			}
 			++shape_count;
+			for (int i = 0; i < shape_count; ++i)
+				glutTimerFunc(100, Fly, i);
 			break;
 		}
 		case 'q':
@@ -320,19 +325,96 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), point, GL_DYNAMIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
 		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), RGB, GL_STATIC_DRAW);
-	}
+	
 	glutPostRedisplay();
 }
 
+void Create(int value)
+{
+	std::uniform_int_distribution<> mode(1, 2);
+	int key = mode(gen);
+	std::cout << "key : " << key << '\n';
+	if (shape_count < 10) {
+		switch (key) {
+		case '1':
+		{
+			shape_mode = 1;
+
+			shape_type[shape_count] = shape_mode;
+
+			double random_point_x = createcoord_x(gen);
+			double random_point_y = createcoord_y(gen);
+			double random_point_4 = createcoord_2(gen);
+			point[shape_count][0] = random_point_x - random_point_4;
+			point[shape_count][1] = random_point_y - random_point_4;
+			point[shape_count][2] = 0.0f;
+			point[shape_count][3] = random_point_x + random_point_4;
+			point[shape_count][4] = random_point_y - random_point_4;
+			point[shape_count][5] = 0.0f;
+			point[shape_count][6] = random_point_x;
+			point[shape_count][7] = random_point_y + random_point_4;
+			point[shape_count][8] = 0.0f;
+			for (int i = 0; i < 3; ++i) {
+				RGB[shape_count][i] = color(gen);
+			}
+			for (int i = 0; i < 3; ++i) {
+				RGB[shape_count][i + 6] = RGB[shape_count][i + 3] = RGB[shape_count][i];
+			}
+			++shape_count;
+			for (int i = 0; i < 10; ++i)
+				glutTimerFunc(100, Fly, i);
+			break;
+		}
+		case '2':
+		{
+			shape_mode = 2;
+
+			shape_type[shape_count] = shape_mode;
+
+			double random_point_x = createcoord_x(gen);
+			double random_point_y = createcoord_y(gen);
+			double random_point_2 = createcoord_2(gen);
+			point[shape_count][0] = random_point_x - createcoord_2(gen);
+			point[shape_count][1] = random_point_y - createcoord_2(gen);
+			point[shape_count][2] = 0.0f;
+			point[shape_count][3] = random_point_x - createcoord_2(gen);
+			point[shape_count][4] = random_point_y + createcoord_2(gen);
+			point[shape_count][5] = 0.0f;
+			point[shape_count][6] = random_point_x + createcoord_2(gen);
+			point[shape_count][7] = random_point_y - createcoord_2(gen);
+			point[shape_count][8] = 0.0f;
+			point[shape_count][9] = random_point_x + createcoord_2(gen);
+			point[shape_count][10] = random_point_y + createcoord_2(gen);
+			point[shape_count][11] = 0.0f;
+			for (int i = 0; i < 3; ++i) {
+				RGB[shape_count][i] = color(gen);
+			}
+			for (int i = 0; i < 3; ++i) {
+				RGB[shape_count][i + 9] = RGB[shape_count][i + 6] = RGB[shape_count][i + 3] = RGB[shape_count][i];
+			}
+			++shape_count;
+			for (int i = 0; i < 10; ++i)
+				glutTimerFunc(100, Fly, i);
+			break;
+		}
+		glBindVertexArray(vao);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), point, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), RGB, GL_STATIC_DRAW);
+		glutPostRedisplay();
+
+		glutTimerFunc(1000, Create, value + 1);
+		}
+	}
+}
 
 void Fly(int value)
 {
-	GLfloat gravity = 1.1f;
-	GLfloat left_gravity = 0.01f;
+	GLfloat gravity = -0.2f;	
+	GLfloat left_gravity = 0.007f;
 
-	std::cout << "fly" << '\n';
-	gravity += 0.005;
-	// 중력 가속도를 적용
+	// gravity += 0.005;
 	point[value][1] -= 0.005f * gravity;
 	point[value][4] -= 0.005f * gravity;
 	point[value][7] -= 0.005f * gravity;
