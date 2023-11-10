@@ -64,8 +64,8 @@ GLuint vbo_underbox[2];
 GLfloat underbox[4][3] = {
 	{-0.3f,-0.8f, 0.f},
 	{-0.3f,-0.9f, 0.f},
-	{ 0.3f,-0.9f, 0.f},
-	{ 0.3f,-0.8f, 0.f}
+	{ 0.2f,-0.9f, 0.f},
+	{ 0.2f,-0.8f, 0.f}
 };
 GLfloat underbox_RGB[4][3] = {
 	{0.0f, 0.0f, 1.0f},
