@@ -20,9 +20,10 @@ void Mouse(int, int, int, int);
 GLvoid drawScene();
 GLvoid Reshape(int w, int h);
 GLvoid Keyboard(unsigned char key, int x, int y);
-void Motion(int, int);
+void MouseMotion(int, int);
 void Fly(int);
-void Create(int);
+void Create();
+void UnderboxMovement(int);
 
 void convertCoordinate(int x, int y, double& convertedX, double& convertedY) {
 	convertedX = (2.0 * x / MAXX) - 1.0;
@@ -32,7 +33,7 @@ void convertCoordinate(int x, int y, double& convertedX, double& convertedY) {
 
 std::random_device rd;
 std::mt19937 gen(rd());
-std::uniform_real_distribution<> createcoord_x(1.0, 1.5);
+std::uniform_real_distribution<> createcoord_x(0.3, 0.5); // 1.3, 1.5
 std::uniform_real_distribution<> createcoord_y(-0.5, 0.5);
 std::uniform_real_distribution<> createcoord_2(0.1, 0.2);
 // GLfloat tri_size = createcoord(gen);
@@ -44,6 +45,7 @@ GLuint vertexShader, fragmentShader; //--- 세이더 객체
 GLuint shaderProgramID;
 GLuint vao, vbo[2];
 
+
 GLuint vbo_line[2];
 GLfloat line[2][6] = {
 	{0, 1, 0, 0,-1, 0},
@@ -54,19 +56,6 @@ GLfloat line_RGB[2][6] = {
 	{1, 0, 0, 1, 0, 0}
 };
 
-
-bool click;
-GLuint vbo_cutting_line[2];
-GLfloat cutting_line[2][3];
-GLfloat cutting_line_RGB[2][3];
-
-GLuint vbo_triangle[2];
-GLfloat triangle[3][3];
-GLfloat triangle_RGB[3][3];
-
-GLuint vbo_square[2];
-GLfloat squrae[4][3];
-GLfloat square_RGB[4][3];
 
 GLuint vbo_underbox[2];
 GLfloat underbox[4][3] = {
@@ -82,6 +71,19 @@ GLfloat underbox_RGB[4][3] = {
 	{0.0f, 0.0f, 1.0f}
 };
 
+bool click;
+GLuint vbo_cutting_line[2];
+GLfloat cutting_line[2][3];
+GLfloat cutting_line_RGB[2][3];
+
+GLuint vbo_triangle[2];
+GLfloat triangle[3][3];
+GLfloat triangle_RGB[3][3];
+
+GLuint vbo_square[2];
+GLfloat square[4][3];
+GLfloat square_RGB[4][3];
+
 GLfloat point[100][12];
 GLfloat RGB[100][12];
 
@@ -89,14 +91,14 @@ int figure_type{ 0 };
 GLfloat figure[10][12];
 
 
-
 int shape_mode;
 int shape_count;
 int shape_type[10];
 
+bool game_start = false;
+
 void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 {
-
 	// 윈도우 생성
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
@@ -124,9 +126,17 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설�
 	glutReshapeFunc(Reshape);
 	glutKeyboardFunc(Keyboard);
 	glutMouseFunc(Mouse);
-	glutMotionFunc(Motion);
-	glutTimerFunc(1000, Create, 0);
+	glutMotionFunc(MouseMotion);
+	glutTimerFunc(10, UnderboxMovement, 0);
+
+	if (game_start == false) {
+		std::cout << game_start;
+		Create();
+		game_start = true;
+	}
+
 	glutMainLoop();
+
 }
 
 GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
@@ -165,21 +175,28 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glEnableVertexAttribArray(ColorLocation);
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
-	// Draw Flying_Figure
-	for (int i = 0; i < shape_count; ++i) {
-		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-		glVertexAttribPointer(PosLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(i * 12 * sizeof(GLfloat)));
-		glEnableVertexAttribArray(PosLocation);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-		glVertexAttribPointer(ColorLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(i * 12 * sizeof(GLfloat)));
-		glEnableVertexAttribArray(ColorLocation);
-		if (shape_type[i] == 1)
-			glDrawArrays(GL_TRIANGLES, 0, 3);
-		else if (shape_type[i] == 2)
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	}
+
+	// Draw Flying_Figure (Triangle)
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle[0]);
+	glVertexAttribPointer(PosLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+	glEnableVertexAttribArray(PosLocation);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle[1]);
+	glVertexAttribPointer(ColorLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+	glEnableVertexAttribArray(ColorLocation);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
 
 
+	// Draw Flying_Figure (Square)
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_square[0]);
+	glVertexAttribPointer(PosLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+	glEnableVertexAttribArray(PosLocation);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_square[1]);
+	glVertexAttribPointer(ColorLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+	glEnableVertexAttribArray(ColorLocation);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+
+	// Drag line check
 	if (click) {
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_cutting_line[0]);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(cutting_line), cutting_line, GL_STATIC_DRAW);
@@ -203,6 +220,7 @@ GLvoid InitBuffer()
 	//---VAO 객체 생성 및 바인딩
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
+
 	// vertex data 저장을 위한 VBO 생성 및 바인딩
 	glGenBuffers(2, vbo_line);
 	glGenBuffers(2, vbo_triangle);
@@ -216,21 +234,19 @@ GLvoid InitBuffer()
 	glBufferData(GL_ARRAY_BUFFER, sizeof(line_RGB), line_RGB, GL_STATIC_DRAW);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_underbox[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(underbox), underbox, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(underbox), underbox, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_underbox[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(underbox_RGB), underbox_RGB, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(underbox_RGB), underbox_RGB, GL_DYNAMIC_DRAW);
 
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_RGB), triangle_RGB, GL_DYNAMIC_DRAW);
 
-	//glGenBuffers(1, &vbo);
-	//glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	//// vertex data 데이터 입력
-	//glBufferData(GL_ARRAY_BUFFER, sizeof vertexData), vertexData, GL_STATIC_DRAW);
-	//// 위치 속성 : 속성 위치 0
-	//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-	//glEnableVertexAttribArray(0);
-	//// 색상 속성 : 속성 위치 1
-	//glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-	//glEnableVertexAttribArray(1);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_square[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(square), square, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_square[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(square_RGB), square_RGB, GL_DYNAMIC_DRAW);
 }
 
 GLvoid Reshape(int w, int h) //--- 콜백 함수: 다시 그리기 콜백 함수
@@ -343,7 +359,7 @@ void Mouse(int button, int state, int x, int y)
 	glutPostRedisplay();
 }
 
-void Motion(int x, int y)
+void MouseMotion(int x, int y)
 {
 	GLdouble convertedX, convertedY;
 	convertCoordinate(x, y, convertedX, convertedY);
@@ -361,31 +377,30 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 		switch (key) {
 		case '1':
 		{
-			shape_mode = 1;
-
-			shape_type[shape_count] = shape_mode;
-
 			double random_point_x = createcoord_x(gen);
 			double random_point_y = createcoord_y(gen);
 			double random_point_4 = createcoord_2(gen);
-			point[shape_count][0] = random_point_x - random_point_4;
-			point[shape_count][1] = random_point_y - random_point_4;
-			point[shape_count][2] = 0.0f;
-			point[shape_count][3] = random_point_x + random_point_4;
-			point[shape_count][4] = random_point_y - random_point_4;
-			point[shape_count][5] = 0.0f;
-			point[shape_count][6] = random_point_x;
-			point[shape_count][7] = random_point_y + random_point_4;
-			point[shape_count][8] = 0.0f;
-			for (int i = 0; i < 3; ++i) {
-				RGB[shape_count][i] = color(gen);
-			}
-			for (int i = 0; i < 3; ++i) {
-				RGB[shape_count][i + 6] = RGB[shape_count][i + 3] = RGB[shape_count][i];
-			}
-			++shape_count;
-			for (int i = 0; i < shape_count; ++i)
-				glutTimerFunc(100, Fly, i);
+			triangle[0][0] = random_point_x - random_point_4;
+			triangle[0][1] = random_point_y - random_point_4;
+			triangle[0][2] = 0.0f;
+			triangle[1][0] = random_point_x + random_point_4;
+			triangle[1][1] = random_point_y - random_point_4;
+			triangle[1][2] = 0.0f;
+			triangle[2][0] = random_point_x;
+			triangle[2][1] = random_point_y + random_point_4;
+			triangle[2][2] = 0.0f;
+
+			triangle_RGB[0][0] = color(gen);
+			triangle_RGB[0][1] = color(gen);
+			triangle_RGB[0][2] = color(gen);
+			triangle_RGB[1][0] = color(gen);
+			triangle_RGB[1][1] = color(gen);
+			triangle_RGB[1][2] = color(gen);
+			triangle_RGB[2][0] = color(gen);
+			triangle_RGB[2][1] = color(gen);
+			triangle_RGB[2][2] = color(gen);
+
+			glutTimerFunc(100, Fly, 1);
 			break;
 		}
 		case '2':
@@ -425,115 +440,178 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 			exit(0);
 			break;
 		}
-		glBindVertexArray(vao);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), point, GL_DYNAMIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), RGB, GL_STATIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle[0]);
+		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), triangle, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle[1]);
+		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), triangle_RGB, GL_STATIC_DRAW);
 	
 	glutPostRedisplay();
 }
 
-void Create(int value)
+void Create()
 {
 	std::uniform_int_distribution<> mode(1, 2);
+
 	int flag = mode(gen);
 	std::cout << "key : " << flag << '\n';
-	if (shape_count < 10) {
-		switch (flag) {
-		case '1':
-		{
-			shape_mode = 1;
 
-			shape_type[shape_count] = shape_mode;
+	switch (flag) {
+	case 1:
+	{
+		shape_mode = 1;
 
-			double random_point_x = createcoord_x(gen);
-			double random_point_y = createcoord_y(gen);
-			double random_point_4 = createcoord_2(gen);
-			point[shape_count][0] = random_point_x - random_point_4;
-			point[shape_count][1] = random_point_y - random_point_4;
-			point[shape_count][2] = 0.0f;
-			point[shape_count][3] = random_point_x + random_point_4;
-			point[shape_count][4] = random_point_y - random_point_4;
-			point[shape_count][5] = 0.0f;
-			point[shape_count][6] = random_point_x;
-			point[shape_count][7] = random_point_y + random_point_4;
-			point[shape_count][8] = 0.0f;
-			for (int i = 0; i < 3; ++i) {
-				RGB[shape_count][i] = color(gen);
-			}
-			for (int i = 0; i < 3; ++i) {
-				RGB[shape_count][i + 6] = RGB[shape_count][i + 3] = RGB[shape_count][i];
-			}
-			++shape_count;
-			for (int i = 0; i < 10; ++i)
-				glutTimerFunc(100, Fly, i);
-			break;
-		}
-		case '2':
-		{
-			shape_mode = 2;
+		double random_point_x = createcoord_x(gen);
+		double random_point_y = createcoord_y(gen);
+		double random_point_4 = createcoord_2(gen);
+		triangle[0][0] = random_point_x - random_point_4;
+		triangle[0][1] = random_point_y - random_point_4;
+		triangle[0][2] = 0.0f;
+		triangle[1][0] = random_point_x + random_point_4;
+		triangle[1][1] = random_point_y - random_point_4;
+		triangle[1][2] = 0.0f;
+		triangle[2][0] = random_point_x;
+		triangle[2][1] = random_point_y + random_point_4;
+		triangle[2][2] = 0.0f;
 
-			shape_type[shape_count] = shape_mode;
+		triangle_RGB[0][0] = color(gen);
+		triangle_RGB[0][1] = color(gen);
+		triangle_RGB[0][2] = color(gen);
+		triangle_RGB[1][0] = color(gen);
+		triangle_RGB[1][1] = color(gen);
+		triangle_RGB[1][2] = color(gen);
+		triangle_RGB[2][0] = color(gen);
+		triangle_RGB[2][1] = color(gen);
+		triangle_RGB[2][2] = color(gen);
 
-			double random_point_x = createcoord_x(gen);
-			double random_point_y = createcoord_y(gen);
-			double random_point_2 = createcoord_2(gen);
-			point[shape_count][0] = random_point_x - createcoord_2(gen);
-			point[shape_count][1] = random_point_y - createcoord_2(gen);
-			point[shape_count][2] = 0.0f;
-			point[shape_count][3] = random_point_x - createcoord_2(gen);
-			point[shape_count][4] = random_point_y + createcoord_2(gen);
-			point[shape_count][5] = 0.0f;
-			point[shape_count][6] = random_point_x + createcoord_2(gen);
-			point[shape_count][7] = random_point_y - createcoord_2(gen);
-			point[shape_count][8] = 0.0f;
-			point[shape_count][9] = random_point_x + createcoord_2(gen);
-			point[shape_count][10] = random_point_y + createcoord_2(gen);
-			point[shape_count][11] = 0.0f;
-			for (int i = 0; i < 3; ++i) {
-				RGB[shape_count][i] = color(gen);
-			}
-			for (int i = 0; i < 3; ++i) {
-				RGB[shape_count][i + 9] = RGB[shape_count][i + 6] = RGB[shape_count][i + 3] = RGB[shape_count][i];
-			}
-			++shape_count;
-			for (int i = 0; i < 10; ++i)
-				glutTimerFunc(100, Fly, i);
-			break;
-		}
-		glBindVertexArray(vao);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), point, GL_DYNAMIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), RGB, GL_STATIC_DRAW);
-		glutPostRedisplay();
-		}
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle[0]);
+		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), triangle, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle[1]);
+		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), triangle_RGB, GL_STATIC_DRAW);
+		glutTimerFunc(100, Fly, 1);
+		break;
 	}
+	case 2:
+	{
+		shape_mode = 2;
+
+		double random_point_x = createcoord_x(gen);
+		double random_point_y = createcoord_y(gen);
+		double random_point_2 = createcoord_2(gen);
+		square[0][0] = random_point_x - createcoord_2(gen);
+		square[0][1] = random_point_y - createcoord_2(gen);
+		square[0][2] = 0.0f;
+		square[1][0] = random_point_x - createcoord_2(gen);
+		square[1][1] = random_point_y + createcoord_2(gen);
+		square[1][2] = 0.0f;
+		square[2][0] = random_point_x + createcoord_2(gen);
+		square[2][1] = random_point_y - createcoord_2(gen);
+		square[2][2] = 0.0f;
+		square[3][0] = random_point_x + createcoord_2(gen);
+		square[3][1] = random_point_y + createcoord_2(gen);
+		square[3][2] = 0.0f;
+
+		square_RGB[0][0] = color(gen);
+		square_RGB[0][1] = color(gen);
+		square_RGB[0][2] = color(gen);
+		square_RGB[1][0] = color(gen);
+		square_RGB[1][1] = color(gen);
+		square_RGB[1][2] = color(gen);
+		square_RGB[2][0] = color(gen);
+		square_RGB[2][1] = color(gen);
+		square_RGB[2][2] = color(gen);
+
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_square[0]);
+		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), square, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_square[1]);
+		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), square_RGB, GL_STATIC_DRAW);
+		glutTimerFunc(100, Fly, 1);
+		break;
+	}
+	
+	glutPostRedisplay();
+	}
+}
+
+void UnderboxMovement(int value)
+{
+	GLfloat gravity = 0.007f;
+	static bool moving_direction = true;	// true : move left, false : move right
+
+
+	if (moving_direction == true) {
+		underbox[0][0] -= gravity;
+		underbox[1][0] -= gravity;
+		underbox[2][0] -= gravity;
+		underbox[3][0] -= gravity;
+		if (underbox[0][0] < -1.0f)
+			moving_direction = false;
+	}
+	if (moving_direction == false) {
+		underbox[0][0] += gravity;
+		underbox[1][0] += gravity;
+		underbox[2][0] += gravity;
+		underbox[3][0] += gravity;
+		if (underbox[2][0] > 1.0f)
+			moving_direction = true;
+	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_underbox[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(underbox), underbox, GL_DYNAMIC_DRAW);
+	glutPostRedisplay();
+
+	glutTimerFunc(10, UnderboxMovement, value);
 }
 
 void Fly(int value)
 {
+	std::cout << shape_mode << '\n';
+
 	GLfloat gravity = -0.2f;	
 	GLfloat left_gravity = 0.007f;
 
-	// gravity += 0.005;
-	point[value][1] -= 0.005f * gravity;
-	point[value][4] -= 0.005f * gravity;
-	point[value][7] -= 0.005f * gravity;
-	point[value][10] -= 0.005f* gravity;
+	if (shape_mode == 1) {
+		triangle[0][0] -= left_gravity;
+		triangle[0][1] -= 0.005f * gravity;
+		triangle[0][2] = 0.0f;
+		triangle[1][0] -= left_gravity;
+		triangle[1][1] -= 0.005f * gravity;
+		triangle[1][2] = 0.0f;
+		triangle[2][0] -= left_gravity;
+		triangle[2][1] -= 0.005f * gravity;
+		triangle[2][2] = 0.0f;
 
-	point[value][0] -= left_gravity;
-	point[value][3] -= left_gravity;
-	point[value][6] -= left_gravity;
-	point[value][9] -= left_gravity;
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle[0]);
+		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), triangle, GL_DYNAMIC_DRAW);
+	}
+	else if (shape_mode == 2) {
+		square[0][0] -= left_gravity;
+		square[0][1] -= 0.005f * gravity;
+		square[0][2] = 0.0f;
+		square[1][0] -= left_gravity;
+		square[1][1] -= 0.005f * gravity;
+		square[1][2] = 0.0f;
+		square[2][0] -= left_gravity;
+		square[2][1] -= 0.005f * gravity;
+		square[2][2] = 0.0f;
+		square[3][0] -= left_gravity;
+		square[3][1] -= 0.005f * gravity;
+		square[3][2] = 0.0f;
+
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_square[0]);
+		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), square, GL_DYNAMIC_DRAW);
+	}
+
+	if (triangle[0][0] < -1.5) {
+		Create();
+	}
+	else if (square[0][0] < -1.5) {
+		Create();
+	}
+
+
 	// 화면 다시 그리기 요청
-	glBindVertexArray(vao);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), point, GL_DYNAMIC_DRAW);
 	glutPostRedisplay();
 
 	// 일정 간격으로 Fly 함수를 반복 호출
-	glutTimerFunc(10, Fly, value);
+	glutTimerFunc(10, Fly, 1);
 }
-
