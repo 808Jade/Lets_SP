@@ -24,6 +24,10 @@ void MouseMotion(int, int);
 void Fly(int);
 void Create();
 void UnderboxMovement(int);
+bool CrossCheck();
+
+GLfloat crossProduct(GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2);
+bool isIntersecting();
 
 void convertCoordinate(int x, int y, double& convertedX, double& convertedY) {
 	convertedX = (2.0 * x / MAXX) - 1.0;
@@ -73,11 +77,20 @@ GLfloat underbox_RGB[4][3] = {
 
 bool click;
 GLuint vbo_cutting_line[2];
-GLfloat cutting_line[2][3];
+GLfloat cutting_line[2][3] = {
+	{5, 5, 0},
+	{5, 5, 0},
+};
 GLfloat cutting_line_RGB[2][3];
+GLfloat remember_start[2];
+GLfloat remember_end[2];
 
 GLuint vbo_triangle[2];
-GLfloat triangle[3][3];
+GLfloat triangle[3][3] = {
+	{3,3,0},
+	{3,3,0},
+	{3,3,0}
+};
 GLfloat triangle_RGB[3][3];
 
 GLuint vbo_square[2];
@@ -90,19 +103,55 @@ GLfloat RGB[100][12];
 int figure_type{ 0 };
 GLfloat figure[10][12];
 
+bool isIntersect = false;
 
 int shape_mode;
 int shape_count;
 int shape_type[10];
 
-bool game_start = false;
+bool isLineIntersectTriangle(GLfloat start_x, GLfloat start_y,
+	GLfloat end_x, GLfloat end_y,
+	GLfloat triangle[3][3]) {
+	// 선분 시작점
+	GLfloat rayStartX = start_x;
+	GLfloat rayStartY = start_y;
+
+	// 선분의 방향
+	GLfloat rayDirX = end_x - start_x;
+	GLfloat rayDirY = end_y - start_y;
+
+	// 레이캐스팅 알고리즘
+	int intersectCount = 0;
+
+	for (int i = 0; i < 3; ++i) {
+		GLfloat v1x = triangle[i][0];
+		GLfloat v1y = triangle[i][1];
+
+		GLfloat v2x = triangle[(i + 1) % 3][0];
+		GLfloat v2y = triangle[(i + 1) % 3][1];
+
+
+		// 교차 판별
+		if (((v1y > rayStartY) != (v2y > rayStartY)) &&
+			(rayStartX < (v2x - v1x) * (rayStartY - v1y) / (v2y - v1y) + v1x)) {
+			intersectCount++;
+			std::cout << "\n\n\n" << intersectCount << "\n\n\n";
+		}
+	}
+
+	std::cout << "\n\n\n" << intersectCount << "\n\n\n";
+
+	// 교차 여부 판별
+	return (intersectCount == 2);
+}
+
 
 void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 {
 	// 윈도우 생성
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-	glutInitWindowPosition(100, 100);
+	glutInitWindowPosition(500, 500);
 	glutInitWindowSize(MAXX, MAXY);
 	glutCreateWindow("Let's SP");
 	// GLEW 초기화
@@ -128,15 +177,8 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설�
 	glutMouseFunc(Mouse);
 	glutMotionFunc(MouseMotion);
 	glutTimerFunc(10, UnderboxMovement, 0);
-
-	if (game_start == false) {
-		std::cout << game_start;
-		Create();
-		game_start = true;
-	}
-
+	Create();
 	glutMainLoop();
-
 }
 
 GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
@@ -204,13 +246,13 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_cutting_line[1]);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(cutting_line_RGB), cutting_line_RGB, GL_STATIC_DRAW);
 		glVertexAttribPointer(ColorLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
-		glLineWidth(2);
+		glLineWidth(3);
 		glDrawArrays(GL_LINES, 0, 2);
 	}
 
-
 	glDisableVertexAttribArray(PosLocation); // Disable 필수!
 	glDisableVertexAttribArray(ColorLocation);
+
 
 	glutSwapBuffers(); // 화면에 출력하기
 }
@@ -341,6 +383,9 @@ void Mouse(int button, int state, int x, int y)
 			cutting_line[1][0] = convertedX;
 			cutting_line[1][1] = convertedY;
 			cutting_line[1][2] = 0.f;
+
+			remember_start[0] = cutting_line[0][0];
+			remember_start[1] = cutting_line[0][1];
 		}
 	}
 	else if (state == GLUT_UP) {
@@ -353,6 +398,33 @@ void Mouse(int button, int state, int x, int y)
 			cutting_line[1][0] = convertedX;
 			cutting_line[1][1] = convertedY;
 			cutting_line[1][2] = 0.f;
+
+			remember_end[0] = cutting_line[1][0];
+			remember_end[1] = cutting_line[1][1];
+
+			isIntersect = isLineIntersectTriangle(remember_start[0], remember_start[1],
+				remember_end[0], remember_end[1],
+				triangle);
+
+			//std::cout << triangle[0][0] << '\n';
+			//std::cout << triangle[0][1] << '\n';
+			//std::cout << triangle[1][0] << '\n';
+			//std::cout << triangle[1][1] << '\n';
+			//std::cout << triangle[2][0] << '\n';
+			//std::cout << triangle[2][1] << '\n';
+
+			std::cout << remember_start[0] << '\n';
+			std::cout << remember_start[1] << '\n';
+			std::cout << remember_end[0] << '\n';
+			std::cout << remember_end[1] << "\n\n\n";
+
+			if (isIntersect) {
+				std::cout << "선분과 삼각형이 교차합니다." << std::endl;
+				isIntersect = false;
+			}
+			else {
+				std::cout << "X" << std::endl;
+			}
 		}
 	}
 
@@ -374,95 +446,31 @@ void MouseMotion(int x, int y)
 
 GLvoid Keyboard(unsigned char key, int x, int y)
 {
-		switch (key) {
-		case '1':
-		{
-			double random_point_x = createcoord_x(gen);
-			double random_point_y = createcoord_y(gen);
-			double random_point_4 = createcoord_2(gen);
-			triangle[0][0] = random_point_x - random_point_4;
-			triangle[0][1] = random_point_y - random_point_4;
-			triangle[0][2] = 0.0f;
-			triangle[1][0] = random_point_x + random_point_4;
-			triangle[1][1] = random_point_y - random_point_4;
-			triangle[1][2] = 0.0f;
-			triangle[2][0] = random_point_x;
-			triangle[2][1] = random_point_y + random_point_4;
-			triangle[2][2] = 0.0f;
-
-			triangle_RGB[0][0] = color(gen);
-			triangle_RGB[0][1] = color(gen);
-			triangle_RGB[0][2] = color(gen);
-			triangle_RGB[1][0] = color(gen);
-			triangle_RGB[1][1] = color(gen);
-			triangle_RGB[1][2] = color(gen);
-			triangle_RGB[2][0] = color(gen);
-			triangle_RGB[2][1] = color(gen);
-			triangle_RGB[2][2] = color(gen);
-
-			glutTimerFunc(100, Fly, 1);
-			break;
-		}
-		case '2':
-		{
-			shape_mode = 2;
-
-			shape_type[shape_count] = shape_mode;
-
-			double random_point_x = createcoord_x(gen);
-			double random_point_y = createcoord_y(gen);
-			double random_point_2 = createcoord_2(gen);
-			point[shape_count][0] = random_point_x - createcoord_2(gen);
-			point[shape_count][1] = random_point_y - createcoord_2(gen);
-			point[shape_count][2] = 0.0f;
-			point[shape_count][3] = random_point_x - createcoord_2(gen);
-			point[shape_count][4] = random_point_y + createcoord_2(gen);
-			point[shape_count][5] = 0.0f;
-			point[shape_count][6] = random_point_x + createcoord_2(gen);
-			point[shape_count][7] = random_point_y - createcoord_2(gen);
-			point[shape_count][8] = 0.0f;
-			point[shape_count][9] = random_point_x + createcoord_2(gen);
-			point[shape_count][10] = random_point_y + createcoord_2(gen);
-			point[shape_count][11] = 0.0f;
-			for (int i = 0; i < 3; ++i) {
-				RGB[shape_count][i] = color(gen);
-			}
-			for (int i = 0; i < 3; ++i) {
-				RGB[shape_count][i + 9] = RGB[shape_count][i + 6] = RGB[shape_count][i + 3] = RGB[shape_count][i];
-			}
-			++shape_count;
-			for (int i = 0; i < shape_count; ++i)
-				glutTimerFunc(100, Fly, i);
-			break;
-		}
-		case 'q':
-		case 'Q':
-			exit(0);
-			break;
-		}
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle[0]);
-		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), triangle, GL_DYNAMIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle[1]);
-		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), triangle_RGB, GL_STATIC_DRAW);
+	switch (key) {
+	case 'q':
+	case 'Q':
+		exit(0);
+		break;
+	}
 	
 	glutPostRedisplay();
 }
 
 void Create()
 {
-	std::uniform_int_distribution<> mode(1, 2);
+	std::uniform_int_distribution<> mode(1, 1);
 
 	int flag = mode(gen);
-	std::cout << "key : " << flag << '\n';
+	// std::cout << "key : " << flag << '\n';
 
 	switch (flag) {
 	case 1:
 	{
 		shape_mode = 1;
 
-		double random_point_x = createcoord_x(gen);
-		double random_point_y = createcoord_y(gen);
-		double random_point_4 = createcoord_2(gen);
+		GLfloat random_point_x = createcoord_x(gen);
+		GLfloat random_point_y = createcoord_y(gen);
+		GLfloat random_point_4 = createcoord_2(gen);
 		triangle[0][0] = random_point_x - random_point_4;
 		triangle[0][1] = random_point_y - random_point_4;
 		triangle[0][2] = 0.0f;
@@ -483,20 +491,21 @@ void Create()
 		triangle_RGB[2][1] = color(gen);
 		triangle_RGB[2][2] = color(gen);
 
+
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle[0]);
 		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), triangle, GL_DYNAMIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle[1]);
 		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), triangle_RGB, GL_STATIC_DRAW);
-		glutTimerFunc(100, Fly, 1);
+		glutTimerFunc(100, Fly, 0);
 		break;
 	}
 	case 2:
 	{
 		shape_mode = 2;
 
-		double random_point_x = createcoord_x(gen);
-		double random_point_y = createcoord_y(gen);
-		double random_point_2 = createcoord_2(gen);
+		GLfloat random_point_x = createcoord_x(gen);
+		GLfloat random_point_y = createcoord_y(gen);
+		GLfloat random_point_2 = createcoord_2(gen);
 		square[0][0] = random_point_x - createcoord_2(gen);
 		square[0][1] = random_point_y - createcoord_2(gen);
 		square[0][2] = 0.0f;
@@ -524,7 +533,7 @@ void Create()
 		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), square, GL_DYNAMIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_square[1]);
 		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), square_RGB, GL_STATIC_DRAW);
-		glutTimerFunc(100, Fly, 1);
+		glutTimerFunc(100, Fly, 0);
 		break;
 	}
 	
@@ -562,22 +571,22 @@ void UnderboxMovement(int value)
 	glutTimerFunc(10, UnderboxMovement, value);
 }
 
+
 void Fly(int value)
 {
-	std::cout << shape_mode << '\n';
-
-	GLfloat gravity = -0.2f;	
+	// std::cout << shape_mode << '\n';
+	GLfloat gravity = -0.002f;
 	GLfloat left_gravity = 0.007f;
 
 	if (shape_mode == 1) {
 		triangle[0][0] -= left_gravity;
-		triangle[0][1] -= 0.005f * gravity;
+		triangle[0][1] -= gravity;
 		triangle[0][2] = 0.0f;
 		triangle[1][0] -= left_gravity;
-		triangle[1][1] -= 0.005f * gravity;
+		triangle[1][1] -= gravity;
 		triangle[1][2] = 0.0f;
 		triangle[2][0] -= left_gravity;
-		triangle[2][1] -= 0.005f * gravity;
+		triangle[2][1] -= gravity;
 		triangle[2][2] = 0.0f;
 
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle[0]);
@@ -585,26 +594,26 @@ void Fly(int value)
 	}
 	else if (shape_mode == 2) {
 		square[0][0] -= left_gravity;
-		square[0][1] -= 0.005f * gravity;
+		square[0][1] -= gravity;
 		square[0][2] = 0.0f;
 		square[1][0] -= left_gravity;
-		square[1][1] -= 0.005f * gravity;
+		square[1][1] -= gravity;
 		square[1][2] = 0.0f;
 		square[2][0] -= left_gravity;
-		square[2][1] -= 0.005f * gravity;
+		square[2][1] -= gravity;
 		square[2][2] = 0.0f;
 		square[3][0] -= left_gravity;
-		square[3][1] -= 0.005f * gravity;
+		square[3][1] -= gravity;
 		square[3][2] = 0.0f;
 
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_square[0]);
 		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), square, GL_DYNAMIC_DRAW);
 	}
 
-	if (triangle[0][0] < -1.5) {
+	if (triangle[0][0] < -1.5 && shape_mode == 1) {
 		Create();
 	}
-	else if (square[0][0] < -1.5) {
+	else if (square[0][0] < -1.5 && shape_mode == 2) {
 		Create();
 	}
 
@@ -613,5 +622,31 @@ void Fly(int value)
 	glutPostRedisplay();
 
 	// 일정 간격으로 Fly 함수를 반복 호출
-	glutTimerFunc(10, Fly, 1);
+	glutTimerFunc(10, Fly, 0);
+}
+
+bool CrossCheck()
+{
+	double crossed_x;
+	double crossed_y;
+
+	double t;
+	double s;
+	double under = (triangle[0][1] - triangle[1][1]) * (triangle[0][0] - triangle[1][0]) - (remember_start[0] - remember_end[0]) * (remember_start[1] - remember_end[1]);
+	if (under == 0)	return false;
+
+	double _t = (remember_start[0] - remember_end[0]) * (remember_end[1] - triangle[1][1]) - (triangle[0][1] - triangle[1][1]) * (triangle[1][0] - remember_end[0]);
+	double _s = (triangle[0][0] - triangle[1][0]) * (remember_end[1] - triangle[1][1]) - (remember_start[1] - remember_end[1]) * (triangle[1][0] - remember_end[0]);
+
+	t = _t / under;
+	s = _s / under;
+
+	if (t < 0.0 || t>1.0 || s < 0.0 || s>1.0) return false;
+	if (_t == 0 && _s == 0) return false;
+
+	crossed_x = triangle[1][0] + t * (double)(triangle[0][0] - triangle[1][0]);
+	crossed_y = remember_end[1] + t * (double)(remember_start[1] - remember_end[1]);
+
+	std::cout << "true" << '\n';
+	return true;
 }
