@@ -179,6 +179,7 @@ bool CrossCheckRectangle() {
 
 		if (doesSegmentIntersectWithRectangle(seg1, square)) {
 			std::cout << "선분과 사각형이 교차합니다." << std::endl;
+			Deviding();
 			return true;
 		}
 	}
@@ -528,10 +529,9 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 bool create_flag = true;
 void Create()
 {
-	std::uniform_int_distribution<> mode(1, 1);
+	std::uniform_int_distribution<> mode(2, 2);
 
 	int flag = mode(gen);
-	// std::cout << "key : " << flag << '\n';
 
 	switch (flag) {
 	case 1:
@@ -737,18 +737,54 @@ void Deviding()
 		}
 		++shape_count;
 
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[0]);
-		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_1, GL_DYNAMIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[1]);
-		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_RGB_1, GL_STATIC_DRAW);
-
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[0]);
-		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_2, GL_DYNAMIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[1]);
-		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_RGB_2, GL_STATIC_DRAW);
+		
 	}
 	if (shape_mode == 2) {
+		devided_point_1[shape_count][0] = square[0][0];
+		devided_point_1[shape_count][1] = square[0][1];
+		devided_point_1[shape_count][2] = 0.0f;
+		devided_point_1[shape_count][3] = square[1][0];
+		devided_point_1[shape_count][4] = square[1][1];
+		devided_point_1[shape_count][5] = 0.0f;
+		devided_point_1[shape_count][6] = square[2][0];
+		devided_point_1[shape_count][7] = square[2][1];
+		devided_point_1[shape_count][8] = 0.0f;
 
+		devided_point_2[shape_count][0] = square[2][0];
+		devided_point_2[shape_count][1] = square[2][1];
+		devided_point_2[shape_count][2] = 0.0f;
+		devided_point_2[shape_count][3] = square[1][0];
+		devided_point_2[shape_count][4] = square[1][1];
+		devided_point_2[shape_count][5] = 0.0f;
+		devided_point_2[shape_count][6] = square[3][0];
+		devided_point_2[shape_count][7] = square[3][1];
+		devided_point_2[shape_count][8] = 0.0f;
+
+		for (int i = 0; i < 3; ++i) {
+			devided_RGB_1[shape_count][i] = color(gen);
+		}
+		for (int i = 0; i < 3; ++i) {
+			devided_RGB_1[shape_count][i + 6] = devided_RGB_1[shape_count][i + 3] = devided_RGB_1[shape_count][i];
+		}
+		for (int i = 0; i < 3; ++i) {
+			devided_RGB_2[shape_count][i] = color(gen);
+		}
+		for (int i = 0; i < 3; ++i) {
+			devided_RGB_2[shape_count][i + 6] = devided_RGB_2[shape_count][i + 3] = devided_RGB_2[shape_count][i];
+		}
+		++shape_count;
 	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[0]);
+	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_1, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[1]);
+	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_RGB_1, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[0]);
+	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_2, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[1]);
+	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_RGB_2, GL_STATIC_DRAW);
+
+	Create();
 }
 
