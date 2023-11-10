@@ -24,7 +24,10 @@ void MouseMotion(int, int);
 void Fly(int);
 void Create();
 void UnderboxMovement(int);
-bool CrossCheck();
+void Deviding();
+
+
+
 
 
 void convertCoordinate(int x, int y, double& convertedX, double& convertedY) {
@@ -91,38 +94,37 @@ GLfloat triangle[3][3] = {
 };
 GLfloat triangle_RGB[3][3];
 
+
 GLuint vbo_square[2];
 GLfloat square[4][3];
 GLfloat square_RGB[4][3];
 
-GLfloat point[100][12];
-GLfloat RGB[100][12];
+GLuint vbo_devided_point_1[2];
+GLfloat devided_point_1[10][12];
+GLfloat devided_RGB_1[10][12];
+int shape_count;
+GLuint vbo_devided_point_2[2];
+GLfloat devided_point_2[10][12];
+GLfloat devided_RGB_2[10][12];
 
-int figure_type{ 0 };
-GLfloat figure[10][12];
 
 bool isIntersect = false;
 
 int shape_mode;
-int shape_count;
-int shape_type[10];
 
 
 struct Point {
 	double x, y;
 };
-
 struct Segment {
 	Point start, end;
 };
-
 // 방향을 확인하는 함수
 int orientation(Point p, Point q, Point r) {
 	double val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
 	if (val == 0) return 0;
 	return (val > 0) ? 1 : 2;
 }
-
 // 선분 상에 있는지 여부를 확인하는 함수
 bool onSegment(Point p, Point q, Point r) {
 	if (q.x <= std::max(p.x, r.x) && q.x >= std::min(p.x, r.x) &&
@@ -130,7 +132,6 @@ bool onSegment(Point p, Point q, Point r) {
 		return true;
 	return false;
 }
-
 // 두 선분이 교차하는지 판단하는 함수
 bool doIntersect(Segment seg1, Segment seg2) {
 	int o1 = orientation(seg1.start, seg1.end, seg2.start);
@@ -150,7 +151,6 @@ bool doIntersect(Segment seg1, Segment seg2) {
 
 	return false;
 }
-
 bool doesSegmentIntersectWithTriangle(Segment seg, GLfloat triangle[3][3]) {
 	for (int i = 0; i < 3; ++i) {
 		Segment triangleSegment = { {triangle[i][0], triangle[i][1]}, {triangle[(i + 1) % 3][0], triangle[(i + 1) % 3][1]} };
@@ -161,7 +161,6 @@ bool doesSegmentIntersectWithTriangle(Segment seg, GLfloat triangle[3][3]) {
 
 	return false;
 }
-
 bool doesSegmentIntersectWithRectangle(Segment seg, GLfloat square[4][3]) {
 	for (int i = 0; i < 4; ++i) {
 		Segment squareSegment = { {square[i][0], square[i][1]}, {square[(i + 1) % 4][0], square[(i + 1) % 4][1]} };
@@ -172,7 +171,6 @@ bool doesSegmentIntersectWithRectangle(Segment seg, GLfloat square[4][3]) {
 
 	return false;
 }
-
 bool CrossCheckRectangle() {
 	Segment seg1 = { {remember_start[0], remember_start[1]}, {remember_end[0], remember_end[1]} };
 
@@ -189,8 +187,6 @@ bool CrossCheckRectangle() {
 
 	return false;
 }
-
-
 bool CrossCheckTriangle() {
 	Segment seg1 = { {remember_start[0], remember_start[1]}, {remember_end[0], remember_end[1]} };
 
@@ -199,6 +195,7 @@ bool CrossCheckTriangle() {
 
 		if (doesSegmentIntersectWithTriangle(seg1, triangle)) {
 			std::cout << "선분과 삼각형이 교차합니다." << std::endl;
+			Deviding();
 			return true;
 		}
 	}
@@ -258,10 +255,10 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	for (int i = 0; i < 2; ++i) {
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_line[0]);
 		glVertexAttribPointer(PosLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(i * 6 * sizeof(GLfloat)));
-		glEnableVertexAttribArray(PosLocation);
+
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_line[1]);
 		glVertexAttribPointer(ColorLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(i * 6 * sizeof(GLfloat)));
-		glEnableVertexAttribArray(ColorLocation);
+		
 		glDrawArrays(GL_LINES, 0, 2);
 	}
 
@@ -269,32 +266,52 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	// Draw underbox
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_underbox[0]);
 	glVertexAttribPointer(PosLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
-	glEnableVertexAttribArray(PosLocation);
+	
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_underbox[1]);
 	glVertexAttribPointer(ColorLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
-	glEnableVertexAttribArray(ColorLocation);
+	
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
 
 	// Draw Flying_Figure (Triangle)
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle[0]);
 	glVertexAttribPointer(PosLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
-	glEnableVertexAttribArray(PosLocation);
+	
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle[1]);
 	glVertexAttribPointer(ColorLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
-	glEnableVertexAttribArray(ColorLocation);
+	
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
 
 	// Draw Flying_Figure (Square)
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_square[0]);
 	glVertexAttribPointer(PosLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
-	glEnableVertexAttribArray(PosLocation);
+	
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_square[1]);
 	glVertexAttribPointer(ColorLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
-	glEnableVertexAttribArray(ColorLocation);
+	
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
+	// Draw Devided_Figure 
+	for (int i = 0; i < shape_count; ++i) {
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[0]);
+		glVertexAttribPointer(PosLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(i * 12 * sizeof(GLfloat)));
+
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[1]);
+		glVertexAttribPointer(ColorLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(i * 12 * sizeof(GLfloat)));
+
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+	}
+	for (int i = 0; i < shape_count; ++i) {
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[0]);
+		glVertexAttribPointer(PosLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(i * 12 * sizeof(GLfloat)));
+		glEnableVertexAttribArray(PosLocation);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[1]);
+		glVertexAttribPointer(ColorLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(i * 12 * sizeof(GLfloat)));
+		glEnableVertexAttribArray(ColorLocation);
+
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+	}
 
 	// Drag line check
 	if (click) {
@@ -327,6 +344,8 @@ GLvoid InitBuffer()
 	glGenBuffers(2, vbo_square);
 	glGenBuffers(2, vbo_cutting_line);
 	glGenBuffers(2, vbo_underbox);
+	glGenBuffers(2, vbo_devided_point_1);
+	glGenBuffers(2, vbo_devided_point_2);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_line[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(line), line, GL_STATIC_DRAW);
@@ -347,6 +366,17 @@ GLvoid InitBuffer()
 	glBufferData(GL_ARRAY_BUFFER, sizeof(square), square, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_square[1]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(square_RGB), square_RGB, GL_DYNAMIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[0]);
+	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_1, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[1]);
+	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_RGB_1, GL_STATIC_DRAW);
+	
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[0]);
+	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_2, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[1]);
+	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_RGB_2, GL_STATIC_DRAW);
+
 }
 
 GLvoid Reshape(int w, int h) //--- 콜백 함수: 다시 그리기 콜백 함수
@@ -464,19 +494,6 @@ void Mouse(int button, int state, int x, int y)
 				CrossCheckTriangle();
 			else
 				CrossCheckRectangle();
-
-			//std::cout << triangle[0][0] << '\n';
-			//std::cout << triangle[0][1] << '\n';
-			//std::cout << triangle[1][0] << '\n';
-			//std::cout << triangle[1][1] << '\n';
-			//std::cout << triangle[2][0] << '\n';
-			//std::cout << triangle[2][1] << '\n';
-
-			/*std::cout << "start0 : " << remember_start[0] << '\n';
-			std::cout << "start1 : " << remember_start[1] << '\n';
-			std::cout << "end0 : " << remember_end[0] << '\n';
-			std::cout << "end1 : " << remember_end[1] << "\n\n\n";*/
-
 		}
 	}
 
@@ -511,7 +528,7 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 bool create_flag = true;
 void Create()
 {
-	std::uniform_int_distribution<> mode(1, 2);
+	std::uniform_int_distribution<> mode(1, 1);
 
 	int flag = mode(gen);
 	// std::cout << "key : " << flag << '\n';
@@ -683,3 +700,55 @@ void Fly(int value)
 	// 일정 간격으로 Fly 함수를 반복 호출
 	glutTimerFunc(10, Fly, 0);
 }
+
+void Deviding()
+{
+	if (shape_mode == 1) {
+		devided_point_1[shape_count][0] = triangle[0][0];
+		devided_point_1[shape_count][1] = triangle[0][1];
+		devided_point_1[shape_count][2] = 0.0f;
+		devided_point_1[shape_count][3] = triangle[2][0];
+		devided_point_1[shape_count][4] = triangle[0][1];
+		devided_point_1[shape_count][5] = 0.0f;
+		devided_point_1[shape_count][6] = triangle[2][0];
+		devided_point_1[shape_count][7] = triangle[2][1];
+		devided_point_1[shape_count][8] = 0.0f;
+
+		devided_point_2[shape_count][6] = triangle[1][0];
+		devided_point_2[shape_count][7] = triangle[1][1];
+		devided_point_2[shape_count][2] = 0.0f;
+		devided_point_2[shape_count][3] = triangle[2][0];
+		devided_point_2[shape_count][4] = triangle[0][1];
+		devided_point_2[shape_count][5] = 0.0f;
+		devided_point_2[shape_count][0] = triangle[2][0];
+		devided_point_2[shape_count][1] = triangle[2][1];
+		devided_point_2[shape_count][8] = 0.0f;
+		for (int i = 0; i < 3; ++i) {
+			devided_RGB_1[shape_count][i] = color(gen);
+		}
+		for (int i = 0; i < 3; ++i) {
+			devided_RGB_1[shape_count][i + 6] = devided_RGB_1[shape_count][i + 3] = devided_RGB_1[shape_count][i];
+		}
+		for (int i = 0; i < 3; ++i) {
+			devided_RGB_2[shape_count][i] = color(gen);
+		}
+		for (int i = 0; i < 3; ++i) {
+			devided_RGB_2[shape_count][i + 6] = devided_RGB_2[shape_count][i + 3] = devided_RGB_2[shape_count][i];
+		}
+		++shape_count;
+
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[0]);
+		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_1, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[1]);
+		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_RGB_1, GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[0]);
+		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_2, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[1]);
+		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_RGB_2, GL_STATIC_DRAW);
+	}
+	if (shape_mode == 2) {
+
+	}
+}
+
