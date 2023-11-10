@@ -14,6 +14,7 @@ void make_vertexShaders();
 void make_fragmentShaders();
 void make_shaderProgram();
 char* filetobuf(const char* file);
+GLvoid InitBuffer();
 
 void Mouse(int, int, int, int);
 GLvoid drawScene();
@@ -23,12 +24,10 @@ void Motion(int, int);
 void Fly(int);
 void Create(int);
 
-
 void convertCoordinate(int x, int y, double& convertedX, double& convertedY) {
 	convertedX = (2.0 * x / MAXX) - 1.0;
 	convertedY = 1.0 - (2.0 * y / MAXY);
 }
-
 
 
 std::random_device rd;
@@ -46,8 +45,42 @@ GLuint shaderProgramID;
 GLuint vao, vbo[2];
 
 GLuint vbo_line[2];
-GLfloat line[2][6];
-GLfloat line_RGB[2][6];
+GLfloat line[2][6] = {
+	{0, 1, 0, 0,-1, 0},
+	{1, 0, 0,-1, 0, 0}
+};
+GLfloat line_RGB[2][6] = {
+	{0, 0, 1, 0, 0, 1},
+	{1, 0, 0, 1, 0, 0}
+};
+
+
+bool click;
+GLuint vbo_cutting_line[2];
+GLfloat cutting_line[2][3];
+GLfloat cutting_line_RGB[2][3];
+
+GLuint vbo_triangle[2];
+GLfloat triangle[3][3];
+GLfloat triangle_RGB[3][3];
+
+GLuint vbo_square[2];
+GLfloat squrae[4][3];
+GLfloat square_RGB[4][3];
+
+GLuint vbo_underbox[2];
+GLfloat underbox[4][3] = {
+	{-0.3f,-0.8f, 0.f},
+	{-0.3f,-0.9f, 0.f},
+	{ 0.3f,-0.9f, 0.f},
+	{ 0.3f,-0.8f, 0.f}
+};
+GLfloat underbox_RGB[4][3] = {
+	{0.0f, 0.0f, 1.0f},
+	{0.0f, 0.0f, 1.0f},
+	{0.0f, 0.0f, 1.0f},
+	{0.0f, 0.0f, 1.0f}
+};
 
 GLfloat point[100][12];
 GLfloat RGB[100][12];
@@ -74,17 +107,10 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설�
 	glewExperimental = GL_TRUE;
 	glewInit();
 
+	//--- 세이더 읽어와서 세이더 프로그램 만들기
+	make_shaderProgram();
+	glUseProgram(shaderProgramID);
 
-	{
-		line[0][1] = 1;
-		line[0][4] = -1;
-		line[1][0] = 1;
-		line[1][3] = -1;
-		line_RGB[0][2] = 1;
-		line_RGB[0][5] = 1;
-		line_RGB[1][0] = 1;
-		line_RGB[1][3] = 1;
-	}
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 	glGenBuffers(2, vbo);
@@ -92,18 +118,8 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설�
 	glBufferData(GL_ARRAY_BUFFER, 4 * 9 * sizeof(GLfloat), figure, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
 	glBufferData(GL_ARRAY_BUFFER, 4 * 9 * sizeof(GLfloat), RGB, GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_line[0]);
-	glGenBuffers(2, vbo_line);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_line[0]);
-	glBufferData(GL_ARRAY_BUFFER, 2 * 6 * sizeof(GLfloat), line, GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_line[1]);
-	glBufferData(GL_ARRAY_BUFFER, 2 * 6 * sizeof(GLfloat), line_RGB, GL_STATIC_DRAW);
 
-	glUseProgram(shaderProgramID);
-
-	//--- 세이더 읽어와서 세이더 프로그램 만들기
-	make_shaderProgram();
-
+	InitBuffer();
 	glutDisplayFunc(drawScene); // 장면을 다시 그리는데 필요한 루틴들은 모두 이 함수 안에 넣어둔다.
 	glutReshapeFunc(Reshape);
 	glutKeyboardFunc(Keyboard);
@@ -139,6 +155,16 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 		glDrawArrays(GL_LINES, 0, 2);
 	}
 
+
+	// Draw underbox
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_underbox[0]);
+	glVertexAttribPointer(PosLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+	glEnableVertexAttribArray(PosLocation);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_underbox[1]);
+	glVertexAttribPointer(ColorLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+	glEnableVertexAttribArray(ColorLocation);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
 	// Draw Flying_Figure
 	for (int i = 0; i < shape_count; ++i) {
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
@@ -154,10 +180,57 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	}
 
 
+	if (click) {
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_cutting_line[0]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(cutting_line), cutting_line, GL_STATIC_DRAW);
+		glVertexAttribPointer(PosLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_cutting_line[1]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(cutting_line_RGB), cutting_line_RGB, GL_STATIC_DRAW);
+		glVertexAttribPointer(ColorLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+		glLineWidth(2);
+		glDrawArrays(GL_LINES, 0, 2);
+	}
+
+
 	glDisableVertexAttribArray(PosLocation); // Disable 필수!
 	glDisableVertexAttribArray(ColorLocation);
 
 	glutSwapBuffers(); // 화면에 출력하기
+}
+
+GLvoid InitBuffer()
+{
+	//---VAO 객체 생성 및 바인딩
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+	// vertex data 저장을 위한 VBO 생성 및 바인딩
+	glGenBuffers(2, vbo_line);
+	glGenBuffers(2, vbo_triangle);
+	glGenBuffers(2, vbo_square);
+	glGenBuffers(2, vbo_cutting_line);
+	glGenBuffers(2, vbo_underbox);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_line[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(line), line, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_line[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(line_RGB), line_RGB, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_underbox[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(underbox), underbox, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_underbox[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(underbox_RGB), underbox_RGB, GL_STATIC_DRAW);
+
+
+	//glGenBuffers(1, &vbo);
+	//glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	//// vertex data 데이터 입력
+	//glBufferData(GL_ARRAY_BUFFER, sizeof vertexData), vertexData, GL_STATIC_DRAW);
+	//// 위치 속성 : 속성 위치 0
+	//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	//glEnableVertexAttribArray(0);
+	//// 색상 속성 : 속성 위치 1
+	//glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	//glEnableVertexAttribArray(1);
 }
 
 GLvoid Reshape(int w, int h) //--- 콜백 함수: 다시 그리기 콜백 함수
@@ -242,6 +315,31 @@ void Mouse(int button, int state, int x, int y)
 	GLdouble convertedX, convertedY;
 	convertCoordinate(x, y, convertedX, convertedY);
 
+	if (state == GLUT_DOWN)	{
+		if (button == GLUT_LEFT_BUTTON) {
+			click = true;
+
+			cutting_line[0][0] = convertedX;
+			cutting_line[0][1] = convertedY;
+			cutting_line[0][2] = 0.f;
+			cutting_line[1][0] = convertedX;
+			cutting_line[1][1] = convertedY;
+			cutting_line[1][2] = 0.f;
+		}
+	}
+	else if (state == GLUT_UP) {
+		if (button == GLUT_LEFT_BUTTON) {
+			click = false;
+
+			cutting_line[0][0] = convertedX;
+			cutting_line[0][1] = convertedY;
+			cutting_line[0][2] = 0.f;
+			cutting_line[1][0] = convertedX;
+			cutting_line[1][1] = convertedY;
+			cutting_line[1][2] = 0.f;
+		}
+	}
+
 	glutPostRedisplay();
 }
 
@@ -249,6 +347,13 @@ void Motion(int x, int y)
 {
 	GLdouble convertedX, convertedY;
 	convertCoordinate(x, y, convertedX, convertedY);
+
+	if (click) {
+		cutting_line[1][0] = convertedX;
+		cutting_line[1][1] = convertedY;
+		cutting_line[1][2] = 0.f;
+	}
+	glutPostRedisplay();
 }
 
 GLvoid Keyboard(unsigned char key, int x, int y)
@@ -279,7 +384,7 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 				RGB[shape_count][i + 6] = RGB[shape_count][i + 3] = RGB[shape_count][i];
 			}
 			++shape_count;
-			for (int i = 0; i < 10; ++i)
+			for (int i = 0; i < shape_count; ++i)
 				glutTimerFunc(100, Fly, i);
 			break;
 		}
@@ -332,10 +437,10 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 void Create(int value)
 {
 	std::uniform_int_distribution<> mode(1, 2);
-	int key = mode(gen);
-	std::cout << "key : " << key << '\n';
+	int flag = mode(gen);
+	std::cout << "key : " << flag << '\n';
 	if (shape_count < 10) {
-		switch (key) {
+		switch (flag) {
 		case '1':
 		{
 			shape_mode = 1;
@@ -403,8 +508,6 @@ void Create(int value)
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
 		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), RGB, GL_STATIC_DRAW);
 		glutPostRedisplay();
-
-		glutTimerFunc(1000, Create, value + 1);
 		}
 	}
 }
