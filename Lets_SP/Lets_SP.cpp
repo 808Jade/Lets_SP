@@ -109,42 +109,106 @@ int shape_mode;
 int shape_count;
 int shape_type[10];
 
-bool isLineIntersectTriangle(GLfloat start_x, GLfloat start_y,
-	GLfloat end_x, GLfloat end_y,
-	GLfloat triangle[3][3]) {
-	// 선분 시작점
-	GLfloat rayStartX = start_x;
-	GLfloat rayStartY = start_y;
 
-	// 선분의 방향
-	GLfloat rayDirX = end_x - start_x;
-	GLfloat rayDirY = end_y - start_y;
+struct Point {
+	double x, y;
+};
 
-	// 레이캐스팅 알고리즘
-	int intersectCount = 0;
+struct Segment {
+	Point start, end;
+};
 
+// 방향을 확인하는 함수
+int orientation(Point p, Point q, Point r) {
+	double val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+	if (val == 0) return 0;
+	return (val > 0) ? 1 : 2;
+}
+
+// 선분 상에 있는지 여부를 확인하는 함수
+bool onSegment(Point p, Point q, Point r) {
+	if (q.x <= std::max(p.x, r.x) && q.x >= std::min(p.x, r.x) &&
+		q.y <= std::max(p.y, r.y) && q.y >= std::min(p.y, r.y))
+		return true;
+	return false;
+}
+
+// 두 선분이 교차하는지 판단하는 함수
+bool doIntersect(Segment seg1, Segment seg2) {
+	int o1 = orientation(seg1.start, seg1.end, seg2.start);
+	int o2 = orientation(seg1.start, seg1.end, seg2.end);
+	int o3 = orientation(seg2.start, seg2.end, seg1.start);
+	int o4 = orientation(seg2.start, seg2.end, seg1.end);
+
+	// 서로 다른 방향이면 교차함
+	if (o1 != o2 && o3 != o4)
+		return true;
+
+	// 특수한 경우 처리 (일직선 상에 있거나 일치하는 경우)
+	if (o1 == 0 && onSegment(seg1.start, seg2.start, seg1.end)) return true;
+	if (o2 == 0 && onSegment(seg1.start, seg2.end, seg1.end)) return true;
+	if (o3 == 0 && onSegment(seg2.start, seg1.start, seg2.end)) return true;
+	if (o4 == 0 && onSegment(seg2.start, seg1.end, seg2.end)) return true;
+
+	return false;
+}
+
+bool doesSegmentIntersectWithTriangle(Segment seg, GLfloat triangle[3][3]) {
 	for (int i = 0; i < 3; ++i) {
-		GLfloat v1x = triangle[i][0];
-		GLfloat v1y = triangle[i][1];
+		Segment triangleSegment = { {triangle[i][0], triangle[i][1]}, {triangle[(i + 1) % 3][0], triangle[(i + 1) % 3][1]} };
 
-		GLfloat v2x = triangle[(i + 1) % 3][0];
-		GLfloat v2y = triangle[(i + 1) % 3][1];
+		if (doIntersect(seg, triangleSegment))
+			return true;
+	}
 
+	return false;
+}
 
-		// 교차 판별
-		if (((v1y > rayStartY) != (v2y > rayStartY)) &&
-			(rayStartX < (v2x - v1x) * (rayStartY - v1y) / (v2y - v1y) + v1x)) {
-			intersectCount++;
-			std::cout << "\n\n\n" << intersectCount << "\n\n\n";
+bool doesSegmentIntersectWithRectangle(Segment seg, GLfloat square[4][3]) {
+	for (int i = 0; i < 4; ++i) {
+		Segment squareSegment = { {square[i][0], square[i][1]}, {square[(i + 1) % 4][0], square[(i + 1) % 4][1]} };
+
+		if (doIntersect(seg, squareSegment))
+			return true;
+	}
+
+	return false;
+}
+
+bool CrossCheckRectangle() {
+	Segment seg1 = { {remember_start[0], remember_start[1]}, {remember_end[0], remember_end[1]} };
+
+	for (int i = 0; i < 4; ++i) {
+		Segment seg2 = { {square[i][0], square[i][1]}, {square[(i + 1) % 4][0], square[(i + 1) % 4][1]} };
+
+		if (doesSegmentIntersectWithRectangle(seg1, square)) {
+			std::cout << "선분과 사각형이 교차합니다." << std::endl;
+			return true;
 		}
 	}
 
-	std::cout << "\n\n\n" << intersectCount << "\n\n\n";
+	std::cout << "선분과 사각형이 교차하지 않습니다." << std::endl;
 
-	// 교차 여부 판별
-	return (intersectCount == 2);
+	return false;
 }
 
+
+bool CrossCheckTriangle() {
+	Segment seg1 = { {remember_start[0], remember_start[1]}, {remember_end[0], remember_end[1]} };
+
+	for (int i = 0; i < 3; ++i) {
+		Segment seg2 = { {triangle[i][0], triangle[i][1]}, {triangle[(i + 1) % 3][0], triangle[(i + 1) % 3][1]} };
+
+		if (doesSegmentIntersectWithTriangle(seg1, triangle)) {
+			std::cout << "선분과 삼각형이 교차합니다." << std::endl;
+			return true;
+		}
+	}
+
+	std::cout << "선분과 삼각형이 교차하지 않습니다." << std::endl;
+
+	return false;
+}
 
 void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 {
@@ -165,10 +229,6 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설�
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 	glGenBuffers(2, vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-	glBufferData(GL_ARRAY_BUFFER, 4 * 9 * sizeof(GLfloat), figure, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-	glBufferData(GL_ARRAY_BUFFER, 4 * 9 * sizeof(GLfloat), RGB, GL_STATIC_DRAW);
 
 	InitBuffer();
 	glutDisplayFunc(drawScene); // 장면을 다시 그리는데 필요한 루틴들은 모두 이 함수 안에 넣어둔다.
@@ -401,10 +461,11 @@ void Mouse(int button, int state, int x, int y)
 
 			remember_end[0] = cutting_line[1][0];
 			remember_end[1] = cutting_line[1][1];
-
-			isIntersect = isLineIntersectTriangle(remember_start[0], remember_start[1],
-				remember_end[0], remember_end[1],
-				triangle);
+			
+			if (shape_mode == 1)
+				CrossCheckTriangle();
+			else
+				CrossCheckRectangle();
 
 			//std::cout << triangle[0][0] << '\n';
 			//std::cout << triangle[0][1] << '\n';
@@ -413,18 +474,11 @@ void Mouse(int button, int state, int x, int y)
 			//std::cout << triangle[2][0] << '\n';
 			//std::cout << triangle[2][1] << '\n';
 
-			std::cout << remember_start[0] << '\n';
-			std::cout << remember_start[1] << '\n';
-			std::cout << remember_end[0] << '\n';
-			std::cout << remember_end[1] << "\n\n\n";
+			/*std::cout << "start0 : " << remember_start[0] << '\n';
+			std::cout << "start1 : " << remember_start[1] << '\n';
+			std::cout << "end0 : " << remember_end[0] << '\n';
+			std::cout << "end1 : " << remember_end[1] << "\n\n\n";*/
 
-			if (isIntersect) {
-				std::cout << "선분과 삼각형이 교차합니다." << std::endl;
-				isIntersect = false;
-			}
-			else {
-				std::cout << "X" << std::endl;
-			}
 		}
 	}
 
@@ -458,7 +512,7 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 
 void Create()
 {
-	std::uniform_int_distribution<> mode(1, 1);
+	std::uniform_int_distribution<> mode(1, 2);
 
 	int flag = mode(gen);
 	// std::cout << "key : " << flag << '\n';
@@ -623,30 +677,4 @@ void Fly(int value)
 
 	// 일정 간격으로 Fly 함수를 반복 호출
 	glutTimerFunc(10, Fly, 0);
-}
-
-bool CrossCheck()
-{
-	double crossed_x;
-	double crossed_y;
-
-	double t;
-	double s;
-	double under = (triangle[0][1] - triangle[1][1]) * (triangle[0][0] - triangle[1][0]) - (remember_start[0] - remember_end[0]) * (remember_start[1] - remember_end[1]);
-	if (under == 0)	return false;
-
-	double _t = (remember_start[0] - remember_end[0]) * (remember_end[1] - triangle[1][1]) - (triangle[0][1] - triangle[1][1]) * (triangle[1][0] - remember_end[0]);
-	double _s = (triangle[0][0] - triangle[1][0]) * (remember_end[1] - triangle[1][1]) - (remember_start[1] - remember_end[1]) * (triangle[1][0] - remember_end[0]);
-
-	t = _t / under;
-	s = _s / under;
-
-	if (t < 0.0 || t>1.0 || s < 0.0 || s>1.0) return false;
-	if (_t == 0 && _s == 0) return false;
-
-	crossed_x = triangle[1][0] + t * (double)(triangle[0][0] - triangle[1][0]);
-	crossed_y = remember_end[1] + t * (double)(remember_start[1] - remember_end[1]);
-
-	std::cout << "true" << '\n';
-	return true;
 }
