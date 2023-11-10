@@ -237,6 +237,7 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설�
 	glutMainLoop();
 }
 
+bool line_mode = false;
 GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 {
 	GLfloat rColor, gColor, bColor;
@@ -329,6 +330,11 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glDisableVertexAttribArray(PosLocation); // Disable 필수!
 	glDisableVertexAttribArray(ColorLocation);
 
+	if (line_mode)
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	}
+	else	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	glutSwapBuffers(); // 화면에 출력하기
 }
@@ -517,6 +523,17 @@ void MouseMotion(int x, int y)
 GLvoid Keyboard(unsigned char key, int x, int y)
 {
 	switch (key) {
+	case 'p':
+	case 'P':
+		glutTimerFunc(100, Fly, 0);
+		break;
+	case 'l':
+	case 'L':
+		if (!line_mode)
+			line_mode = true;
+		else 
+			line_mode = false;
+		break;
 	case 'q':
 	case 'Q':
 		exit(0);
@@ -737,10 +754,6 @@ void Deviding()
 		}
 		++shape_count;
 
-		std::cout << "Devide : " << devided_point_1[shape_count][6] << '\n';
-		std::cout << "Devide : " << devided_point_1[shape_count][7] << '\n';
-		std::cout << "Devide : " << devided_point_2[shape_count][0] << '\n';
-		std::cout << "Devide : " << devided_point_2[shape_count][1] << '\n';
 
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[0]);
 		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_1, GL_DYNAMIC_DRAW);
