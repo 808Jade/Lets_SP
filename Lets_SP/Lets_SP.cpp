@@ -98,12 +98,12 @@ GLfloat square[4][3];
 GLfloat square_RGB[4][3];
 
 GLuint vbo_devided_point_1[2];
-GLfloat devided_point_1[10][12];
-GLfloat devided_RGB_1[10][12];
+GLfloat devided_point_1[100][12];
+GLfloat devided_RGB_1[100][12];
 int shape_count;
 GLuint vbo_devided_point_2[2];
-GLfloat devided_point_2[10][12];
-GLfloat devided_RGB_2[10][12];
+GLfloat devided_point_2[100][12];
+GLfloat devided_RGB_2[100][12];
 
 
 bool isIntersect = false;
@@ -178,6 +178,7 @@ bool CrossCheckRectangle() {
 		if (doesSegmentIntersectWithRectangle(seg1, square)) {
 			std::cout << "선분과 사각형이 교차합니다." << std::endl;
 			Deviding();
+			Create();
 			return true;
 		}
 	}
@@ -195,6 +196,7 @@ bool CrossCheckTriangle() {
 		if (doesSegmentIntersectWithTriangle(seg1, triangle)) {
 			std::cout << "선분과 삼각형이 교차합니다." << std::endl;
 			Deviding();
+			Create();
 			return true;
 		}
 	}
@@ -304,13 +306,13 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	for (int i = 0; i < shape_count; ++i) {
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[0]);
 		glVertexAttribPointer(PosLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(i * 12 * sizeof(GLfloat)));
-		glEnableVertexAttribArray(PosLocation);
+
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[1]);
 		glVertexAttribPointer(ColorLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)(i * 12 * sizeof(GLfloat)));
-		glEnableVertexAttribArray(ColorLocation);
-
+		
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 	}
+
 
 	// Drag line check
 	if (click) {
@@ -367,9 +369,9 @@ GLvoid InitBuffer()
 	glBufferData(GL_ARRAY_BUFFER, sizeof(square_RGB), square_RGB, GL_DYNAMIC_DRAW);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[0]);
-	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_1, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), devided_point_1, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[1]);
-	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_RGB_1, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), devided_RGB_1, GL_STATIC_DRAW);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[0]);
 	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_2, GL_DYNAMIC_DRAW);
@@ -648,7 +650,6 @@ void UnderboxMovement(int value)
 
 void Fly(int value)
 {
-	// std::cout << shape_mode << '\n';
 	GLfloat gravity = -0.002f;
 	GLfloat left_gravity = 0.007f;
 
@@ -721,6 +722,7 @@ void Deviding()
 		devided_point_2[shape_count][0] = triangle[2][0];
 		devided_point_2[shape_count][1] = triangle[2][1];
 		devided_point_2[shape_count][8] = 0.0f;
+
 		for (int i = 0; i < 3; ++i) {
 			devided_RGB_1[shape_count][i] = color(gen);
 		}
@@ -734,7 +736,21 @@ void Deviding()
 			devided_RGB_2[shape_count][i + 6] = devided_RGB_2[shape_count][i + 3] = devided_RGB_2[shape_count][i];
 		}
 		++shape_count;
-		
+
+		std::cout << "Devide : " << devided_point_1[shape_count][6] << '\n';
+		std::cout << "Devide : " << devided_point_1[shape_count][7] << '\n';
+		std::cout << "Devide : " << devided_point_2[shape_count][0] << '\n';
+		std::cout << "Devide : " << devided_point_2[shape_count][1] << '\n';
+
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[0]);
+		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_1, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[1]);
+		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_RGB_1, GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[0]);
+		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_2, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[1]);
+		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_RGB_2, GL_STATIC_DRAW);
 
 		
 	}
@@ -772,49 +788,75 @@ void Deviding()
 			devided_RGB_2[shape_count][i + 6] = devided_RGB_2[shape_count][i + 3] = devided_RGB_2[shape_count][i];
 		}
 		++shape_count;
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[0]);
+		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_1, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[1]);
+		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_RGB_1, GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[0]);
+		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_2, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[1]);
+		glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_RGB_2, GL_STATIC_DRAW);
+		
 	}
 
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[0]);
-	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_1, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[1]);
-	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_RGB_1, GL_STATIC_DRAW);
+	if (shape_count > 2) {
+		devided_point_1[shape_count - 2][0] = 0.0f;
+		devided_point_1[shape_count - 2][1] = 0.0f;
+		devided_point_1[shape_count - 2][2] = 0.0f;
+		devided_point_1[shape_count - 2][3] = 0.0f;
+		devided_point_1[shape_count - 2][4] = 0.0f;
+		devided_point_1[shape_count - 2][5] = 0.0f;
+		devided_point_1[shape_count - 2][6] = 0.0f;
+		devided_point_1[shape_count - 2][7] = 0.0f;
+		devided_point_1[shape_count - 2][8] = 0.0f;
 
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[0]);
-	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_2, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[1]);
-	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_RGB_2, GL_STATIC_DRAW);
-	glutTimerFunc(10, Falling, 1);
+		devided_point_2[shape_count - 2][0] = 0.0f;
+		devided_point_2[shape_count - 2][1] = 0.0f;
+		devided_point_2[shape_count - 2][2] = 0.0f;
+		devided_point_2[shape_count - 2][3] = 0.0f;
+		devided_point_2[shape_count - 2][4] = 0.0f;
+		devided_point_2[shape_count - 2][5] = 0.0f;
+		devided_point_2[shape_count - 2][6] = 0.0f;
+		devided_point_2[shape_count - 2][7] = 0.0f;
+		devided_point_2[shape_count - 2][8] = 0.0f;
+	}
+
 	Create();
+
+	glutTimerFunc(10, Falling, 0);
 }
 
 void Falling(int value)
 {
 
 	GLfloat gravity = 0.002f;
-	GLfloat left_gravity = 0.007f;
+	GLfloat left_gravity = 0.01f;
 	GLfloat right_gravity = 0.01f;
 
-	devided_point_1[shape_count][0] -= left_gravity;
-	devided_point_1[shape_count][1] -= gravity;
-	devided_point_1[shape_count][2] = 0.0f;
-	devided_point_1[shape_count][3] -= left_gravity;
-	devided_point_1[shape_count][4] -= gravity;
-	devided_point_1[shape_count][5] = 0.0f;
-	devided_point_1[shape_count][6] -= left_gravity;
-	devided_point_1[shape_count][7] -= gravity;
-	devided_point_1[shape_count][8] = 0.0f;
+	devided_point_1[shape_count-1][0] -= left_gravity;
+	devided_point_1[shape_count-1][1] -= gravity;
+	devided_point_1[shape_count-1][2] = 0.0f;
+	devided_point_1[shape_count-1][3] -= left_gravity;
+	devided_point_1[shape_count-1][4] -= gravity;
+	devided_point_1[shape_count-1][5] = 0.0f;
+	devided_point_1[shape_count-1][6] -= left_gravity;
+	devided_point_1[shape_count-1][7] -= gravity;
+	devided_point_1[shape_count-1][8] = 0.0f;
 
-	devided_point_2[shape_count][0] += right_gravity;
-	devided_point_2[shape_count][1] -= gravity;
-	devided_point_2[shape_count][2] = 0.0f;
-	devided_point_2[shape_count][3] += right_gravity;
-	devided_point_2[shape_count][4] -= gravity;
-	devided_point_2[shape_count][5] = 0.0f;
-	devided_point_2[shape_count][6] += right_gravity;
-	devided_point_2[shape_count][7] -= gravity;
-	devided_point_2[shape_count][8] = 0.0f;
+	devided_point_2[shape_count-1][0] += right_gravity;
+	devided_point_2[shape_count-1][1] -= gravity;
+	devided_point_2[shape_count-1][2] = 0.0f;
+	devided_point_2[shape_count-1][3] += right_gravity;
+	devided_point_2[shape_count-1][4] -= gravity;
+	devided_point_2[shape_count-1][5] = 0.0f;
+	devided_point_2[shape_count-1][6] += right_gravity;
+	devided_point_2[shape_count-1][7] -= gravity;
+	devided_point_2[shape_count-1][8] = 0.0f;
 
-	std::cout << devided_point_1[shape_count][0] << '\n';
+	
+
+	// std::cout << "Falling : " << devided_point_1[shape_count][0] << '\n';
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[0]);
 	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_1, GL_DYNAMIC_DRAW);
