@@ -26,8 +26,6 @@ void Create();
 void UnderboxMovement(int);
 bool CrossCheck();
 
-GLfloat crossProduct(GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2);
-bool isIntersecting();
 
 void convertCoordinate(int x, int y, double& convertedX, double& convertedY) {
 	convertedX = (2.0 * x / MAXX) - 1.0;
@@ -37,7 +35,7 @@ void convertCoordinate(int x, int y, double& convertedX, double& convertedY) {
 
 std::random_device rd;
 std::mt19937 gen(rd());
-std::uniform_real_distribution<> createcoord_x(0.3, 0.5); // 1.3, 1.5
+std::uniform_real_distribution<> createcoord_x(1.3, 1.5); // 1.3, 1.5
 std::uniform_real_distribution<> createcoord_y(-0.5, 0.5);
 std::uniform_real_distribution<> createcoord_2(0.1, 0.2);
 // GLfloat tri_size = createcoord(gen);
@@ -433,7 +431,7 @@ void Mouse(int button, int state, int x, int y)
 	GLdouble convertedX, convertedY;
 	convertCoordinate(x, y, convertedX, convertedY);
 
-	if (state == GLUT_DOWN)	{
+	if (state == GLUT_DOWN) {
 		if (button == GLUT_LEFT_BUTTON) {
 			click = true;
 
@@ -461,7 +459,7 @@ void Mouse(int button, int state, int x, int y)
 
 			remember_end[0] = cutting_line[1][0];
 			remember_end[1] = cutting_line[1][1];
-			
+
 			if (shape_mode == 1)
 				CrossCheckTriangle();
 			else
@@ -506,10 +504,11 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 		exit(0);
 		break;
 	}
-	
+
 	glutPostRedisplay();
 }
 
+bool create_flag = true;
 void Create()
 {
 	std::uniform_int_distribution<> mode(1, 2);
@@ -550,7 +549,10 @@ void Create()
 		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), triangle, GL_DYNAMIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle[1]);
 		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), triangle_RGB, GL_STATIC_DRAW);
-		glutTimerFunc(100, Fly, 0);
+		if (create_flag) {
+			glutTimerFunc(100, Fly, 0);
+			create_flag = false;
+		}
 		break;
 	}
 	case 2:
@@ -587,10 +589,13 @@ void Create()
 		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), square, GL_DYNAMIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_square[1]);
 		glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), square_RGB, GL_STATIC_DRAW);
-		glutTimerFunc(100, Fly, 0);
+		if (create_flag) {
+			glutTimerFunc(100, Fly, 0);
+			create_flag = false;
+		}
 		break;
 	}
-	
+
 	glutPostRedisplay();
 	}
 }
