@@ -25,9 +25,7 @@ void Fly(int);
 void Create();
 void UnderboxMovement(int);
 void Deviding();
-
-
-
+void Falling(int);
 
 
 void convertCoordinate(int x, int y, double& convertedX, double& convertedY) {
@@ -529,7 +527,7 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 bool create_flag = true;
 void Create()
 {
-	std::uniform_int_distribution<> mode(2, 2);
+	std::uniform_int_distribution<> mode(1, 2);
 
 	int flag = mode(gen);
 
@@ -736,6 +734,7 @@ void Deviding()
 			devided_RGB_2[shape_count][i + 6] = devided_RGB_2[shape_count][i + 3] = devided_RGB_2[shape_count][i];
 		}
 		++shape_count;
+		
 
 		
 	}
@@ -784,7 +783,46 @@ void Deviding()
 	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_2, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[1]);
 	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_RGB_2, GL_STATIC_DRAW);
-
+	glutTimerFunc(10, Falling, 1);
 	Create();
 }
 
+void Falling(int value)
+{
+
+	GLfloat gravity = 0.002f;
+	GLfloat left_gravity = 0.007f;
+	GLfloat right_gravity = 0.01f;
+
+	devided_point_1[shape_count][0] -= left_gravity;
+	devided_point_1[shape_count][1] -= gravity;
+	devided_point_1[shape_count][2] = 0.0f;
+	devided_point_1[shape_count][3] -= left_gravity;
+	devided_point_1[shape_count][4] -= gravity;
+	devided_point_1[shape_count][5] = 0.0f;
+	devided_point_1[shape_count][6] -= left_gravity;
+	devided_point_1[shape_count][7] -= gravity;
+	devided_point_1[shape_count][8] = 0.0f;
+
+	devided_point_2[shape_count][0] += right_gravity;
+	devided_point_2[shape_count][1] -= gravity;
+	devided_point_2[shape_count][2] = 0.0f;
+	devided_point_2[shape_count][3] += right_gravity;
+	devided_point_2[shape_count][4] -= gravity;
+	devided_point_2[shape_count][5] = 0.0f;
+	devided_point_2[shape_count][6] += right_gravity;
+	devided_point_2[shape_count][7] -= gravity;
+	devided_point_2[shape_count][8] = 0.0f;
+
+	std::cout << devided_point_1[shape_count][0] << '\n';
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_1[0]);
+	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_1, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_devided_point_2[0]);
+	glBufferData(GL_ARRAY_BUFFER, shape_count * 12 * sizeof(GLfloat), devided_point_2, GL_DYNAMIC_DRAW);
+
+
+	glutPostRedisplay();
+
+	glutTimerFunc(10, Falling, value);
+}
